@@ -74,9 +74,15 @@ These checks are designed to run before changes are merged into `main`.
 
 The main application surface is opaque. Smoky glass treatment is reserved for secondary panels, popovers, and overlays.
 
-## Visual previews
+## Visual preview
 
-Click either preview to open the full-size image on GitHub.
+Click the preview to open the full-size image on GitHub.
+
+[![AI Usage Meter dashboard](docs/screenshots/ai-usage-meter-dashboard-approved.png)](docs/screenshots/ai-usage-meter-dashboard-approved.png)
+
+### Ember foundation references
+
+These images document inherited shell behavior and theme controls.
 
 [![Ember Studio shell with Data Explorer and color profiles](docs/screenshots/ember-studio-color-profiles.jpg)](docs/screenshots/ember-studio-color-profiles.jpg)
 
