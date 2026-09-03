@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AI Usage Meter",
+  "version": "0.1.0",
+  "identifier": "com.aiusagemeter.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "AI Usage Meter",
+        "decorations": false,
+        "transparent": false,
+        "resizable": true,
+        "minWidth": 960,
+        "minHeight": 640
+      },
+      {
+        "label": "tray-panel",
+        "title": "AI Usage Meter",
+        "url": "/?window=external&feature=tray-panel",
+        "visible": false,
+        "decorations": false,
+        "transparent": false,
+        "resizable": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "width": 380,
+        "height": 440,
+        "minWidth": 340,
+        "minHeight": 380
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.ico"]
+  }
+}

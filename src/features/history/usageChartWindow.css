@@ -1,0 +1,47 @@
+.usage-chart-window {
+  display: grid;
+  min-height: 100%;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #0c1115;
+}
+
+.usage-chart-window > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.usage-chart-window h1 {
+  margin: 0.2rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 550;
+  letter-spacing: -0.025em;
+}
+
+.usage-chart-window p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.usage-chart-window__eyebrow {
+  color: var(--accent-text);
+  font-size: 0.66rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.usage-chart-window__chart {
+  min-height: 0;
+  padding: 1rem;
+  background: #151c21;
+  border: 1px solid #34404a;
+  border-radius: 0.45rem;
+}
+
+.usage-chart-window__chart .usage-trend__canvas {
+  height: min(70vh, 40rem) !important;
+}

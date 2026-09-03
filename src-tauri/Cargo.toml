@@ -1,0 +1,23 @@
+[package]
+name = "ai-usage-meter"
+version = "0.1.0"
+description = "Local-first Windows utility for tracking AI subscription allowances and reset times"
+authors = ["AI Usage Meter"]
+edition = "2021"
+
+[lib]
+name = "ai_usage_meter_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-autostart = "2"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
