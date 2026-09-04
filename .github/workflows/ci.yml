@@ -36,6 +36,9 @@ jobs:
       - name: Build frontend
         run: ./node_modules/.bin/vite build
 
+      - name: Smoke-test production bundle
+        run: npm run test:production-bundle
+
   native:
     name: Windows Tauri check
     runs-on: windows-latest

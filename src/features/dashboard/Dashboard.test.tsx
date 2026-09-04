@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import { fixtureHistory, fixtureNow, fixtureProviders } from '../../usage/fixtureUsage';
 import { Dashboard } from './Dashboard';
 
-vi.mock('echarts-for-react/lib/core', () => ({
+vi.mock('echarts-for-react/esm/core', () => ({
   default: () => <div data-testid="usage-trend-chart-canvas" />,
 }));
 
