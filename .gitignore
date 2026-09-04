@@ -14,3 +14,7 @@ upload/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+
+# Tauri-generated lock and schema files (root Cargo.lock is canonical)
+src-tauri/Cargo.lock
+src-tauri/gen/
