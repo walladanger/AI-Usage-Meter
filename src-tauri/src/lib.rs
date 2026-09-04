@@ -5,6 +5,7 @@ use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Windo
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 mod diagnostics;
+mod loopback;
 mod startup;
 mod tray;
 
@@ -49,6 +50,13 @@ impl NativeCommandError {
             message: message.into(),
         }
     }
+
+    fn loopback(message: impl Into<String>) -> Self {
+        Self {
+            code: "loopback-unavailable",
+            message: message.into(),
+        }
+    }
 }
 
 type CommandResult<T> = Result<T, NativeCommandError>;
@@ -69,6 +77,14 @@ struct ExternalWindowRequest {
 #[serde(rename_all = "camelCase")]
 struct ExternalWindowOperationResult {
     created: bool,
+}
+
+#[tauri::command]
+fn get_loopback_session(app: AppHandle) -> CommandResult<loopback::LoopbackSession> {
+    diagnostics::record_native(&app, "INFO", "Loopback session requested.");
+    loopback::get_session()
+        .cloned()
+        .ok_or_else(|| NativeCommandError::loopback("Loopback service is not running."))
 }
 
 #[tauri::command]
@@ -364,6 +380,18 @@ pub fn run() {
                 "INFO",
                 "System tray installed; native setup complete.",
             );
+            match loopback::install(&app.handle()) {
+                Ok(()) => diagnostics::record_native(
+                    &app.handle(),
+                    "INFO",
+                    "Loopback ingestion service started.",
+                ),
+                Err(e) => diagnostics::record_native(
+                    &app.handle(),
+                    "WARN",
+                    &format!("Loopback ingestion service failed to start: {e}"),
+                ),
+            };
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -380,6 +408,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            get_loopback_session,
             open_external_feature_window,
             focus_external_feature_window,
             close_external_feature_window,
