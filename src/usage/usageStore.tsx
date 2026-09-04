@@ -5,6 +5,12 @@ import type { ProviderId, ProviderUsageState, UsageObservation } from './usageTy
 
 type UsageListener = () => void;
 
+export interface RefreshSummary {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+}
+
 export class UsageController {
   private readonly states = new Map<ProviderId, ProviderUsageState>();
   private readonly adapters = new Map<ProviderId, PersonalUsageAdapter>();
@@ -37,13 +43,16 @@ export class UsageController {
     return () => this.listeners.delete(listener);
   };
 
-  async refreshAll(): Promise<void> {
-    await Promise.allSettled([...this.adapters.keys()].map((providerId) => this.refreshProvider(providerId)));
+  async refreshAll(): Promise<RefreshSummary> {
+    const providerIds = [...this.adapters.keys()];
+    const results = await Promise.all(providerIds.map((providerId) => this.refreshProvider(providerId)));
+    const succeeded = results.filter(Boolean).length;
+    return { attempted: providerIds.length, succeeded, failed: providerIds.length - succeeded };
   }
 
-  async refreshProvider(providerId: ProviderId): Promise<void> {
+  async refreshProvider(providerId: ProviderId): Promise<boolean> {
     const adapter = this.adapters.get(providerId);
-    if (!adapter) return;
+    if (!adapter) return false;
 
     const previous = this.get(providerId);
     this.states.set(providerId, { ...previous, status: 'updating' });
@@ -63,15 +72,17 @@ export class UsageController {
         isFixture: false,
       });
       await this.repository?.saveObservation(observation);
+      this.emit();
+      return true;
     } catch (error) {
       this.states.set(providerId, {
         ...previous,
         status: 'error',
         lastError: error instanceof Error ? error.message : 'Provider refresh failed',
       });
+      this.emit();
+      return false;
     }
-
-    this.emit();
   }
 
   async setManualObservation(observation: UsageObservation): Promise<void> {
@@ -99,8 +110,8 @@ export class UsageController {
 
 interface UsageContextValue {
   providers: ProviderUsageState[];
-  refreshProvider(providerId: ProviderId): Promise<void>;
-  refreshAll(): Promise<void>;
+  refreshProvider(providerId: ProviderId): Promise<boolean>;
+  refreshAll(): Promise<RefreshSummary>;
   setManualObservation(observation: UsageObservation): Promise<void>;
 }
 

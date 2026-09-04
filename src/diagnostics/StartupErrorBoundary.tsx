@@ -26,7 +26,7 @@ export class StartupErrorBoundary extends Component<StartupErrorBoundaryProps, S
         <main className="startup-failure">
           <h1>AI Usage Meter could not start</h1>
           <p>{this.state.error.message}</p>
-          <p>Diagnostic log: %LOCALAPPDATA%\\com.aiusagemeter.desktop\\logs</p>
+          <p>Diagnostic log: %APPDATA%\com.aiusagemeter.desktop\logs\startup-diagnostics.log</p>
         </main>
       );
     }

@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { createExternalWindowService, isExternalFeatureWindowLabel } from './externalWindowService';
+import { createExternalWindowService, featureWindowUrl, isExternalFeatureWindowLabel } from './externalWindowService';
 
 const feature = {
   id: 'data-explorer',
@@ -114,4 +114,8 @@ test('recognizes only stable feature-window labels as externally controllable', 
   expect(isExternalFeatureWindowLabel('ai-usage-meter-feature-data-explorer')).toBe(true);
   expect(isExternalFeatureWindowLabel('main')).toBe(false);
   expect(isExternalFeatureWindowLabel('ai-usage-meter-feature-../settings')).toBe(false);
+});
+
+test('uses the packaged app entry document for an external feature window', () => {
+  expect(featureWindowUrl('usage-trend')).toBe('index.html?window=external&feature=usage-trend');
 });

@@ -1,8 +1,22 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 import { TitleBar, shouldStartTitleBarDragging } from '../shell/TitleBar';
 import { createBrowserNativeWindowService } from './nativeWindowService';
+
+test('detects the public Tauri runtime flag used by the installed API', () => {
+  const runtime = globalThis as typeof globalThis & { isTauri?: boolean };
+  const previous = runtime.isTauri;
+  runtime.isTauri = true;
+
+  try {
+    expect(isTauriRuntime()).toBe(true);
+  } finally {
+    if (previous === undefined) delete runtime.isTauri;
+    else runtime.isTauri = previous;
+  }
+});
 
 test('browser native-window fallback resolves every title-bar operation', async () => {
   const service = createBrowserNativeWindowService();

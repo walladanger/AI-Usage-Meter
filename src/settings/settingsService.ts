@@ -1,6 +1,7 @@
 import type { AppSettings, SettingsPersistenceAdapter, SettingsService } from './settingsTypes';
 import { getColorFamilies, getColorShades } from '../design-system/colorProfiles';
 import { invoke } from '@tauri-apps/api/core';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 
 export const defaultSettings: AppSettings = {
   version: 1,
@@ -102,6 +103,6 @@ export function createTauriSettingsAdapter(command: NativeSettingsInvoke = invok
   };
 }
 
-export function createRuntimeSettingsAdapter(isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window, command: NativeSettingsInvoke = invoke): SettingsPersistenceAdapter {
+export function createRuntimeSettingsAdapter(isTauri = isTauriRuntime(), command: NativeSettingsInvoke = invoke): SettingsPersistenceAdapter {
   return isTauri ? createTauriSettingsAdapter(command) : createMemorySettingsAdapter();
 }

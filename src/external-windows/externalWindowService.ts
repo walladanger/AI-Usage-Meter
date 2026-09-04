@@ -1,11 +1,12 @@
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 import type { ExternalFeatureDescriptor, ExternalWindowOperationResult, ExternalWindowPort, ExternalWindowRequest, ExternalWindowState, FeaturePresentationState } from './externalWindowTypes';
 
 const EXTERNAL_WINDOW_CLOSED_EVENT = 'ai-usage-meter://external-window-closed';
 
 export function featureWindowLabel(featureId: string): string { return `ai-usage-meter-feature-${featureId}`; }
-export function featureWindowUrl(featureId: string): string { return `/?window=external&feature=${encodeURIComponent(featureId)}`; }
+export function featureWindowUrl(featureId: string): string { return `index.html?window=external&feature=${encodeURIComponent(featureId)}`; }
 export function isExternalFeatureWindowLabel(label: string): boolean {
   return /^ai-usage-meter-feature-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(label);
 }
@@ -34,7 +35,6 @@ export function createTauriExternalWindowPort(): ExternalWindowPort {
   };
 }
 
-function isTauriRuntime(): boolean { return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window; }
 export function getExternalWindowPort(): ExternalWindowPort { return isTauriRuntime() ? createTauriExternalWindowPort() : createBrowserExternalWindowPort(); }
 
 export interface ExternalWindowService {

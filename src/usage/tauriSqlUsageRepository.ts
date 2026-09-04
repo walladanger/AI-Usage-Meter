@@ -1,5 +1,6 @@
 import type { ConnectionEvent, UsageRepository } from './usageRepository';
 import type { Confidence, ProviderId, SourceType, UsageObservation } from './usageTypes';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 import { InMemoryUsageRepository } from './inMemoryUsageRepository';
 
 export interface SqlDatabase {
@@ -97,7 +98,7 @@ async function loadUsageDatabase(): Promise<SqlDatabase> {
 }
 
 export async function createRuntimeUsageRepository(
-  isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window,
+  isTauri = isTauriRuntime(),
   loadDatabase: () => Promise<SqlDatabase> = loadUsageDatabase,
 ): Promise<UsageRepository> {
   if (!isTauri) return new InMemoryUsageRepository();

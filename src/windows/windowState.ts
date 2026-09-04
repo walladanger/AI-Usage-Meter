@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 import { useOptionalSettings } from '../settings/settingsStore';
 import type { PersistenceAdapter } from '../services/contracts';
 import type { WindowBounds } from './windowTypes';
@@ -109,7 +110,7 @@ export function createTauriWindowStateBridge(): NativeWindowStateBridge {
 }
 
 function getNativeWindowStateBridge(): NativeWindowStateBridge {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window ? createTauriWindowStateBridge() : createBrowserWindowStateBridge();
+  return isTauriRuntime() ? createTauriWindowStateBridge() : createBrowserWindowStateBridge();
 }
 
 /** Captures state at page teardown and restores it when a native host starts. */

@@ -1,10 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
+import { isTauriRuntime } from '../../runtime/tauriRuntime';
 import { fixtureNow } from '../../usage/fixtureUsage';
 import { useUsage } from '../../usage/usageStore';
 import { TrayPanel } from './TrayPanel';
 
 function runNative(command: string, args?: Record<string, unknown>): void {
-  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) void invoke(command, args);
+  if (isTauriRuntime()) void invoke(command, args);
 }
 
 export function TrayPanelWindow() {

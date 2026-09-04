@@ -1,4 +1,5 @@
 import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 
 export interface StartupPort {
   enable(): Promise<void>;
@@ -28,7 +29,7 @@ const browserPort: StartupPort = {
 };
 
 export function createRuntimeStartupService(
-  isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window,
+  isTauri = isTauriRuntime(),
 ): StartupService {
   return createStartupService(isTauri ? { enable, disable, isEnabled } : browserPort);
 }

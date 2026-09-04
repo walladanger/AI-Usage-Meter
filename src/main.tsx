@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { StartupErrorBoundary } from './diagnostics/StartupErrorBoundary';
 import { createRuntimeDiagnostics, renderStartupFailure, type DiagnosticEntry, type DiagnosticPort } from './diagnostics/runtimeDiagnostics';
+import { isTauriRuntime } from './runtime/tauriRuntime';
 import './styles/index.css';
 
 const host = document.getElementById('root');
@@ -12,10 +13,6 @@ function browserConsolePort(): DiagnosticPort {
       console[entry.level](`[AI Usage Meter] ${entry.message}`);
     },
   };
-}
-
-function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
 function nativeDiagnosticPort(): DiagnosticPort {
