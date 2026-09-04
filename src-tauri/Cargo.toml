@@ -1,6 +1,6 @@
 [package]
 name = "ai-usage-meter"
-version = "0.1.4"
+version = "0.1.5"
 description = "Local-first Windows utility for tracking AI subscription allowances and reset times"
 authors = ["AI Usage Meter"]
 edition = "2021"
@@ -20,5 +20,10 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-autostart = "2"
 time = { version = "0.3", features = ["formatting", "local-offset", "macros", "parsing"] }
 
+tiny_http = "0.12"
+getrandom = "0.2"
+
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+
+
