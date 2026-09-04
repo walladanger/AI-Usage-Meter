@@ -7,6 +7,7 @@ target/
 .DS_Store
 coverage/
 .superdesign/tmp/
+.worktrees/
 generated_images/
 upload/
 .superpowers/

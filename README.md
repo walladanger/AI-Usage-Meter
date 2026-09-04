@@ -14,6 +14,14 @@ The project provides a smoky-black, blue-accented desktop shell for future appli
 
 The application uses an opaque smoky-black main surface with restrained blue accents. Secondary menus, popovers, and information panels may use smoky glass treatment without making the primary workspace transparent.
 
+## Windows test build
+
+The first installable Windows build is produced as a temporary GitHub Actions artifact after the frontend and native checks pass:
+
+`GitHub > Actions > latest successful CI run > Artifacts > ai-usage-meter-windows-test-installer`
+
+Download and extract the artifact ZIP, then follow the [Windows test checklist](docs/windows-test-checklist.md). This is an unsigned verification build, not a production release, so Windows SmartScreen may identify the publisher as unknown.
+
 ## Development
 
 Requires Node.js 20.19 or newer and npm.
@@ -23,6 +31,13 @@ Install dependencies and start the frontend preview:
 ```bash
 npm install
 npm run dev
+```
+
+Start or build the native Tauri application with the project-local CLI:
+
+```bash
+npm run tauri:dev
+npm run tauri:build
 ```
 
 Run the frontend checks:
