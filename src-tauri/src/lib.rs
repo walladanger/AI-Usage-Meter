@@ -6,6 +6,7 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 
 mod startup;
 mod tray;
+mod diagnostics;
 
 #[derive(Debug, Serialize)]
 struct NativeCommandError {
@@ -50,6 +51,11 @@ struct ExternalWindowRequest {
 #[serde(rename_all = "camelCase")]
 struct ExternalWindowOperationResult {
     created: bool,
+}
+
+#[tauri::command]
+fn write_frontend_diagnostic(app: AppHandle, entry: diagnostics::FrontendDiagnostic) {
+    diagnostics::record_frontend(&app, entry);
 }
 
 fn is_safe_feature_id(feature_id: &str) -> bool {
@@ -168,6 +174,7 @@ fn show_main_window(app: AppHandle, route: Option<String>) -> CommandResult<()> 
         return Err(NativeCommandError::invalid("The requested application route is invalid."));
     }
     tray::show_main(&app, route.as_deref());
+    diagnostics::record_native(&app, "INFO", "Main window requested from native command.");
     Ok(())
 }
 
@@ -206,13 +213,18 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            diagnostics::NativeDiagnostics::install(app);
+            diagnostics::record_native(&app.handle(), "INFO", "Native setup started before webview display.");
             startup::install(app)?;
+            diagnostics::record_native(&app.handle(), "INFO", "Startup integration installed.");
             tray::install(app)?;
+            diagnostics::record_native(&app.handle(), "INFO", "System tray installed; native setup complete.");
             Ok(())
         })
         .on_window_event(|window, event| {
             if window.label() == "main" {
                 if let WindowEvent::CloseRequested { api, .. } = event {
+                    diagnostics::record_native(&window.app_handle(), "INFO", "Main window close intercepted; hiding to tray.");
                     api.prevent_close();
                     let _ = window.hide();
                 }
@@ -225,6 +237,7 @@ pub fn run() {
             load_settings,
             save_settings,
             clear_settings,
+            write_frontend_diagnostic,
             show_main_window,
             hide_tray_panel,
             request_usage_refresh,

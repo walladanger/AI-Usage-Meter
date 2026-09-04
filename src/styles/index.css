@@ -22,6 +22,18 @@ body {
   background: #171717;
 }
 
+.startup-failure {
+  display: grid;
+  align-content: center;
+  min-height: 100%;
+  max-width: 46rem;
+  padding: 3rem;
+  color: #f5f5f5;
+}
+
+.startup-failure h1 { margin: 0 0 1rem; font-size: 1.5rem; }
+.startup-failure p { margin: 0.35rem 0; color: #b9c3d0; line-height: 1.5; }
+
 button,
 input,
 textarea,
