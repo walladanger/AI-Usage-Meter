@@ -1,9 +1,12 @@
 # AI Usage Meter — Project Handover
 
-**Handover date:** 2026-09-04  
-**Repository:** https://github.com/walladanger/AI-Usage-Meter  
-**Canonical branch:** `main`  
-**Current GitHub commit:** `fae5e47d538ff72274d39c324aa36b9106cd47e9` (`fix: render chart in production bundle`)  
+**Handover date:** 2026-09-04
+
+**Repository:** https://github.com/walladanger/AI-Usage-Meter
+
+**Canonical branch:** `main`
+
+**Verified application commit:** `fae5e47d538ff72274d39c324aa36b9106cd47e9` (`fix: render chart in production bundle`)
 **Project version:** `0.1.0` unsigned Windows verification build
 
 ## 1. Read this first
@@ -299,4 +302,3 @@ The current Linux workspace can verify React, TypeScript, Vite, and the optimize
 ## 15. Suggested opening message for the new chat
 
 > Continue building AI Usage Meter from the handover at `docs/HANDOFF.md` in https://github.com/walladanger/AI-Usage-Meter. Treat GitHub `main` as the source of truth and preserve the approved dashboard. First confirm my result from corrected Windows artifact `9920100679`; do not begin connector work until any launch blocker is resolved. Then continue with the remaining Milestone 1 work in the documented order. Make only targeted changes, test them, and do not claim Windows behavior works without evidence.
-
