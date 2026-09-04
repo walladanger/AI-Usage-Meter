@@ -6,7 +6,7 @@ import { NotificationProvider } from '../notifications/NotificationProvider';
 import { AppShell } from '../shell/AppShell';
 import { SettingsProvider } from '../settings/settingsStore';
 import { WindowManagerProvider, useWindowManager } from '../windows/WindowManagerProvider';
-import { ExternalWindowRoute, selectExternalFeature } from '../external-windows/ExternalWindowRoute';
+import { ExternalWindowRoute, injectedExternalFeatureId, selectExternalFeature } from '../external-windows/ExternalWindowRoute';
 import { windowRegistry } from '../windows/windowRegistry';
 import { useNativeWindowStateLifecycle } from '../windows/windowState';
 import { Dashboard } from '../features/dashboard/Dashboard';
@@ -20,8 +20,9 @@ import { UsageSettingsPage } from '../features/settings/UsageSettingsPage';
 import { fixtureHistory, fixtureNow, fixtureProviders } from '../usage/fixtureUsage';
 import { UsageController, UsageProvider, useUsage } from '../usage/usageStore';
 import { useSettings } from '../settings/settingsStore';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 import type { ShellRoute } from '../navigation/navigationTypes';
-import { isTauriRuntime } from '../windows/nativeWindowService';
+import { recordAppDiagnostic } from '../diagnostics/appDiagnostics';
 
 const defaultUsageController = new UsageController(fixtureProviders, []);
 
@@ -31,7 +32,7 @@ function AppContent() {
   const { settings, update } = useSettings();
   const [setupOpen, setSetupOpen] = useState(false);
   const [requestedRoute, setRequestedRoute] = useState<ShellRoute>('overview');
-  const externalFeature = typeof window === 'undefined' ? null : selectExternalFeature(window.location.search, windowRegistry);
+  const externalFeature = typeof window === 'undefined' ? null : selectExternalFeature(window.location.search, windowRegistry, injectedExternalFeatureId(window));
   useNativeWindowStateLifecycle(externalFeature ? `feature:${externalFeature.id}` : 'main');
   useEffect(() => {
     if (!isTauriRuntime() || externalFeature) return undefined;
@@ -56,7 +57,7 @@ function AppContent() {
     providers={providers}
     history={fixtureHistory}
     now={fixtureNow}
-    onRefresh={() => { void refreshAll(); }}
+    onRefresh={refreshAll}
     onPopOutChart={() => { void openExternal('usage-trend'); }}
   />;
 
@@ -71,8 +72,9 @@ function AppContent() {
             initialDraft={settings.extensionSettings.setupDraft as SetupDraft | undefined}
             saveDraft={async (draft) => { await update({ extensionSettings: { ...settings.extensionSettings, setupDraft: draft }, usage: { ...settings.usage, refreshMinutes: draft.refreshMinutes, notificationsEnabled: draft.notificationsEnabled } }); }}
             onComplete={() => setSetupOpen(false)}
+            report={(level, message) => { void recordAppDiagnostic(level, message); }}
           />
-        : <SourcesPage providers={providers} onOpenSetup={() => setSetupOpen(true)} onManualObservation={setManualObservation} />;
+        : <SourcesPage providers={providers} onOpenSetup={() => { void recordAppDiagnostic('info', 'Guided source setup opened.'); setSetupOpen(true); }} onManualObservation={setManualObservation} />;
       case 'settings': return <UsageSettingsPage />;
       case 'help': return <HelpPage />;
     }

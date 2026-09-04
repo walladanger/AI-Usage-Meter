@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+mod diagnostics;
 mod startup;
 mod tray;
-mod diagnostics;
 
 #[derive(Debug, Serialize)]
 struct NativeCommandError {
@@ -16,21 +16,39 @@ struct NativeCommandError {
 
 impl NativeCommandError {
     fn invalid(message: impl Into<String>) -> Self {
-        Self { code: "invalid-request", message: message.into() }
+        Self {
+            code: "invalid-request",
+            message: message.into(),
+        }
     }
 
     fn native(message: impl Into<String>) -> Self {
-        Self { code: "native-window-error", message: message.into() }
+        Self {
+            code: "native-window-error",
+            message: message.into(),
+        }
     }
 
     fn persistence(message: impl Into<String>) -> Self {
-        Self { code: "persistence-failed", message: message.into() }
+        Self {
+            code: "persistence-failed",
+            message: message.into(),
+        }
     }
 
     fn not_found(message: impl Into<String>) -> Self {
-        Self { code: "window-not-found", message: message.into() }
+        Self {
+            code: "window-not-found",
+            message: message.into(),
+        }
     }
 
+    fn diagnostics(message: impl Into<String>) -> Self {
+        Self {
+            code: "diagnostics-failed",
+            message: message.into(),
+        }
+    }
 }
 
 type CommandResult<T> = Result<T, NativeCommandError>;
@@ -58,40 +76,100 @@ fn write_frontend_diagnostic(app: AppHandle, entry: diagnostics::FrontendDiagnos
     diagnostics::record_frontend(&app, entry);
 }
 
+#[tauri::command]
+async fn list_diagnostic_logs(app: AppHandle) -> CommandResult<diagnostics::DiagnosticLogList> {
+    tauri::async_runtime::spawn_blocking(move || diagnostics::list_logs(&app))
+        .await
+        .map_err(|_| NativeCommandError::diagnostics("The diagnostic log list did not complete."))?
+        .map_err(NativeCommandError::diagnostics)
+}
+
+#[tauri::command]
+async fn read_diagnostic_log(
+    app: AppHandle,
+    filename: String,
+) -> CommandResult<diagnostics::DiagnosticLogContent> {
+    tauri::async_runtime::spawn_blocking(move || diagnostics::read_log(&app, &filename))
+        .await
+        .map_err(|_| NativeCommandError::diagnostics("The diagnostic log read did not complete."))?
+        .map_err(NativeCommandError::diagnostics)
+}
+
 fn is_safe_feature_id(feature_id: &str) -> bool {
     !feature_id.is_empty()
         && feature_id.len() <= 80
-        && feature_id.chars().all(|character| character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-')
+        && feature_id.chars().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+        })
 }
 
 fn is_safe_external_label(label: &str) -> bool {
-    label.strip_prefix("ai-usage-meter-feature-").is_some_and(is_safe_feature_id)
+    label
+        .strip_prefix("ai-usage-meter-feature-")
+        .is_some_and(is_safe_feature_id)
 }
 
 fn validate_external_request(request: &ExternalWindowRequest) -> CommandResult<()> {
-    if !is_safe_feature_id(&request.feature_id) || request.label != format!("ai-usage-meter-feature-{}", request.feature_id) {
-        return Err(NativeCommandError::invalid("The external feature label is invalid."));
+    if !is_safe_feature_id(&request.feature_id)
+        || request.label != format!("ai-usage-meter-feature-{}", request.feature_id)
+    {
+        return Err(NativeCommandError::invalid(
+            "The external feature label is invalid.",
+        ));
     }
-    let dimensions = [request.width, request.height, request.min_width, request.min_height];
-    if dimensions.iter().any(|dimension| !dimension.is_finite() || *dimension <= 0.0) {
-        return Err(NativeCommandError::invalid("Window dimensions must be finite positive numbers."));
+    let dimensions = [
+        request.width,
+        request.height,
+        request.min_width,
+        request.min_height,
+    ];
+    if dimensions
+        .iter()
+        .any(|dimension| !dimension.is_finite() || *dimension <= 0.0)
+    {
+        return Err(NativeCommandError::invalid(
+            "Window dimensions must be finite positive numbers.",
+        ));
     }
     Ok(())
 }
 
+fn external_feature_url() -> PathBuf {
+    "index.html".into()
+}
+
+fn external_feature_init_script(feature_id: &str) -> String {
+    let encoded = serde_json::to_string(feature_id).expect("validated feature id serializes");
+    format!("Object.defineProperty(window, '__AI_USAGE_METER_EXTERNAL_FEATURE__', {{ value: {encoded}, writable: false, configurable: false }});")
+}
+
 #[tauri::command]
-fn open_external_feature_window(app: AppHandle, request: ExternalWindowRequest) -> CommandResult<ExternalWindowOperationResult> {
+fn open_external_feature_window(
+    app: AppHandle,
+    request: ExternalWindowRequest,
+) -> CommandResult<ExternalWindowOperationResult> {
     validate_external_request(&request)?;
     if let Some(window) = app.get_webview_window(&request.label) {
-        window.show().map_err(|error| NativeCommandError::native(error.to_string()))?;
-        window.set_focus().map_err(|error| NativeCommandError::native(error.to_string()))?;
+        window
+            .show()
+            .map_err(|error| NativeCommandError::native(error.to_string()))?;
+        window
+            .set_focus()
+            .map_err(|error| NativeCommandError::native(error.to_string()))?;
         return Ok(ExternalWindowOperationResult { created: false });
     }
 
-    let url = format!("/?window=external&feature={}", request.feature_id);
+    diagnostics::record_native(
+        &app,
+        "INFO",
+        &format!("External window requested; feature={}", request.feature_id),
+    );
+    let url = external_feature_url();
+    let initialization_script = external_feature_init_script(&request.feature_id);
     let closed_app = app.clone();
     let closed_label = request.label.clone();
-    let window = WebviewWindowBuilder::new(&app, &request.label, WebviewUrl::App(url.into()))
+    let window = WebviewWindowBuilder::new(&app, &request.label, WebviewUrl::App(url))
+        .initialization_script(initialization_script)
         .title(&request.title)
         .decorations(false)
         .transparent(false)
@@ -99,10 +177,28 @@ fn open_external_feature_window(app: AppHandle, request: ExternalWindowRequest) 
         .inner_size(request.width, request.height)
         .min_inner_size(request.min_width, request.min_height)
         .build()
-        .map_err(|error| NativeCommandError::native(error.to_string()))?;
+        .map_err(|error| {
+            diagnostics::record_native(
+                &app,
+                "ERROR",
+                &format!(
+                    "External window build failed; feature={}; error={error}",
+                    request.feature_id
+                ),
+            );
+            NativeCommandError::native(error.to_string())
+        })?;
+    diagnostics::record_native(
+        &app,
+        "INFO",
+        &format!("External window created; feature={}", request.feature_id),
+    );
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
-            let _ = closed_app.emit("ai-usage-meter://external-window-closed", closed_label.clone());
+            let _ = closed_app.emit(
+                "ai-usage-meter://external-window-closed",
+                closed_label.clone(),
+            );
         }
     });
 
@@ -111,21 +207,40 @@ fn open_external_feature_window(app: AppHandle, request: ExternalWindowRequest) 
 
 #[tauri::command]
 fn focus_external_feature_window(app: AppHandle, label: String) -> CommandResult<()> {
-    if !is_safe_external_label(&label) { return Err(NativeCommandError::invalid("The requested external window label is invalid.")); }
-    let window = app.get_webview_window(&label).ok_or_else(|| NativeCommandError::not_found("The requested external window does not exist."))?;
-    window.show().map_err(|error| NativeCommandError::native(error.to_string()))?;
-    window.set_focus().map_err(|error| NativeCommandError::native(error.to_string()))
+    if !is_safe_external_label(&label) {
+        return Err(NativeCommandError::invalid(
+            "The requested external window label is invalid.",
+        ));
+    }
+    let window = app.get_webview_window(&label).ok_or_else(|| {
+        NativeCommandError::not_found("The requested external window does not exist.")
+    })?;
+    window
+        .show()
+        .map_err(|error| NativeCommandError::native(error.to_string()))?;
+    window
+        .set_focus()
+        .map_err(|error| NativeCommandError::native(error.to_string()))
 }
 
 #[tauri::command]
 fn close_external_feature_window(app: AppHandle, label: String) -> CommandResult<()> {
-    if !is_safe_external_label(&label) { return Err(NativeCommandError::invalid("The requested external window label is invalid.")); }
-    let window = app.get_webview_window(&label).ok_or_else(|| NativeCommandError::not_found("The requested external window does not exist."))?;
-    window.close().map_err(|error| NativeCommandError::native(error.to_string()))
+    if !is_safe_external_label(&label) {
+        return Err(NativeCommandError::invalid(
+            "The requested external window label is invalid.",
+        ));
+    }
+    let window = app.get_webview_window(&label).ok_or_else(|| {
+        NativeCommandError::not_found("The requested external window does not exist.")
+    })?;
+    window
+        .close()
+        .map_err(|error| NativeCommandError::native(error.to_string()))
 }
 
 fn app_settings_path(app: &AppHandle) -> CommandResult<PathBuf> {
-    app.path().app_data_dir()
+    app.path()
+        .app_data_dir()
         .map(|directory| directory.join("settings.json"))
         .map_err(|error| NativeCommandError::persistence(error.to_string()))
 }
@@ -146,13 +261,26 @@ async fn load_settings(app: AppHandle) -> CommandResult<Option<String>> {
 #[tauri::command]
 async fn save_settings(app: AppHandle, content: String) -> CommandResult<()> {
     let path = app_settings_path(&app)?;
-    tauri::async_runtime::spawn_blocking(move || {
-        if let Some(directory) = path.parent() { fs::create_dir_all(directory)?; }
+    diagnostics::record_native(&app, "INFO", "Settings save started.");
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        if let Some(directory) = path.parent() {
+            fs::create_dir_all(directory)?;
+        }
         fs::write(path, content)
     })
     .await
     .map_err(|_| NativeCommandError::persistence("The settings operation did not complete."))?
-    .map_err(|error| NativeCommandError::persistence(error.to_string()))
+    .map_err(|error| NativeCommandError::persistence(error.to_string()));
+    diagnostics::record_native(
+        &app,
+        if result.is_ok() { "INFO" } else { "ERROR" },
+        if result.is_ok() {
+            "Settings save completed."
+        } else {
+            "Settings save failed."
+        },
+    );
+    result
 }
 
 #[tauri::command]
@@ -170,8 +298,15 @@ async fn clear_settings(app: AppHandle) -> CommandResult<()> {
 
 #[tauri::command]
 fn show_main_window(app: AppHandle, route: Option<String>) -> CommandResult<()> {
-    if route.as_deref().is_some_and(|route| !matches!(route, "overview" | "refresh" | "alerts" | "history" | "sources" | "settings" | "help")) {
-        return Err(NativeCommandError::invalid("The requested application route is invalid."));
+    if route.as_deref().is_some_and(|route| {
+        !matches!(
+            route,
+            "overview" | "refresh" | "alerts" | "history" | "sources" | "settings" | "help"
+        )
+    }) {
+        return Err(NativeCommandError::invalid(
+            "The requested application route is invalid.",
+        ));
     }
     tray::show_main(&app, route.as_deref());
     diagnostics::record_native(&app, "INFO", "Main window requested from native command.");
@@ -181,7 +316,9 @@ fn show_main_window(app: AppHandle, route: Option<String>) -> CommandResult<()> 
 #[tauri::command]
 fn hide_tray_panel(app: AppHandle) -> CommandResult<()> {
     if let Some(window) = app.get_webview_window("tray-panel") {
-        window.hide().map_err(|error| NativeCommandError::native(error.to_string()))?;
+        window
+            .hide()
+            .map_err(|error| NativeCommandError::native(error.to_string()))?;
     }
     Ok(())
 }
@@ -214,17 +351,29 @@ pub fn run() {
         )
         .setup(|app| {
             diagnostics::NativeDiagnostics::install(app);
-            diagnostics::record_native(&app.handle(), "INFO", "Native setup started before webview display.");
+            diagnostics::record_native(
+                &app.handle(),
+                "INFO",
+                "Native setup started before webview display.",
+            );
             startup::install(app)?;
             diagnostics::record_native(&app.handle(), "INFO", "Startup integration installed.");
             tray::install(app)?;
-            diagnostics::record_native(&app.handle(), "INFO", "System tray installed; native setup complete.");
+            diagnostics::record_native(
+                &app.handle(),
+                "INFO",
+                "System tray installed; native setup complete.",
+            );
             Ok(())
         })
         .on_window_event(|window, event| {
             if window.label() == "main" {
                 if let WindowEvent::CloseRequested { api, .. } = event {
-                    diagnostics::record_native(&window.app_handle(), "INFO", "Main window close intercepted; hiding to tray.");
+                    diagnostics::record_native(
+                        &window.app_handle(),
+                        "INFO",
+                        "Main window close intercepted; hiding to tray.",
+                    );
                     api.prevent_close();
                     let _ = window.hide();
                 }
@@ -238,6 +387,8 @@ pub fn run() {
             save_settings,
             clear_settings,
             write_frontend_diagnostic,
+            list_diagnostic_logs,
+            read_diagnostic_log,
             show_main_window,
             hide_tray_panel,
             request_usage_refresh,
@@ -245,4 +396,17 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running AI Usage Meter");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{external_feature_init_script, external_feature_url};
+
+    #[test]
+    fn external_feature_windows_use_the_packaged_app_entry_document() {
+        assert_eq!(external_feature_url().to_string_lossy(), "index.html");
+        let script = external_feature_init_script("usage-trend");
+        assert!(script.contains("usage-trend"));
+        assert!(script.contains("writable: false"));
+    }
 }

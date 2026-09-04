@@ -29,6 +29,16 @@ function adapter(providerId: UsageObservation['providerId'], result: UsageObserv
 }
 
 describe('UsageController', () => {
+  test('reports when no automatic provider source is available to refresh', async () => {
+    const controller = new UsageController(initialStates, []);
+
+    await expect(controller.refreshAll()).resolves.toEqual({
+      attempted: 0,
+      succeeded: 0,
+      failed: 0,
+    });
+  });
+
   test('can refresh a single provider without touching another provider', async () => {
     const controller = new UsageController(initialStates, [
       adapter('openai', { providerId: 'openai', remainingPercent: 72, observedAt: '2026-09-03T12:00:00.000Z', sourceType: 'browser_extension', confidence: 'parsed' }),

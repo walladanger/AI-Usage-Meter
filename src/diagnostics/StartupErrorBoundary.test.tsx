@@ -14,6 +14,7 @@ describe('StartupErrorBoundary', () => {
 
     expect(screen.getByRole('heading', { name: 'AI Usage Meter could not start' })).toBeInTheDocument();
     expect(screen.getByText('Dashboard import failed')).toBeInTheDocument();
+    expect(screen.getByText(/%APPDATA%\\com\.aiusagemeter\.desktop\\logs\\startup-diagnostics\.log/)).toBeInTheDocument();
     expect(report).toHaveBeenCalledWith('React render failure: Dashboard import failed');
   });
 });

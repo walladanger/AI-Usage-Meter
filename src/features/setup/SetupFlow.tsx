@@ -1,6 +1,7 @@
 import { Check, ChevronLeft, ChevronRight, Puzzle, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import type { ProviderId, SourceType } from '../../usage/usageTypes';
+import { withTimeout } from '../../runtime/withTimeout';
 import '../shared/featurePages.css';
 
 export interface SetupDraft {
@@ -14,11 +15,12 @@ export interface SetupFlowProps {
   initialDraft?: SetupDraft;
   saveDraft(draft: SetupDraft): Promise<void>;
   onComplete?: (draft: SetupDraft) => void;
+  report?: (level: 'info' | 'warn' | 'error', message: string) => void;
 }
 
 const defaultDraft: SetupDraft = {
   providerId: 'openai',
-  sourceType: 'browser_extension',
+  sourceType: 'manual',
   refreshMinutes: 5,
   notificationsEnabled: false,
 };
@@ -29,20 +31,24 @@ const providers: Array<{ id: ProviderId; label: string; detail: string }> = [
   { id: 'google', label: 'Gemini', detail: 'Gemini allowance and quota timing' },
 ];
 
-export function SetupFlow({ initialDraft = defaultDraft, saveDraft, onComplete }: SetupFlowProps) {
+export function SetupFlow({ initialDraft = defaultDraft, saveDraft, onComplete, report = () => undefined }: SetupFlowProps) {
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState(initialDraft);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const advance = async () => {
+    report('info', `Setup save started; step=${step}; provider=${draft.providerId}; source=${draft.sourceType}.`);
     setSaving(true);
     setSaveError(null);
     try {
-      await saveDraft(draft);
+      if (draft.sourceType !== 'manual') throw new Error('Automatic provider connections are not installed yet.');
+      await withTimeout(saveDraft(draft), 5000, 'Settings save timed out after 5 seconds.');
+      report('info', `Setup save completed; step=${step}.`);
       if (step === 4) onComplete?.(draft);
       else setStep((current) => current + 1);
-    } catch {
+    } catch (error) {
+      report('error', `Setup save failed; step=${step}; reason=${error instanceof Error ? error.message : 'unknown'}.`);
       setSaveError('Setup could not be saved. Your choices remain on this screen.');
     } finally {
       setSaving(false);
@@ -75,9 +81,9 @@ export function SetupFlow({ initialDraft = defaultDraft, saveDraft, onComplete }
 
         {step === 2 ? <>
           <h2>Choose how to connect</h2>
-          <p>The companion reads only visible usage status from a provider tab you are already signed into.</p>
+          <p>Manual entry is available now. Automatic provider connections are planned but not installed in this release.</p>
           <div className="setup-flow__choices">
-            <button type="button" aria-pressed={draft.sourceType === 'browser_extension'} onClick={() => setDraft((current) => ({ ...current, sourceType: 'browser_extension' }))}><Puzzle size={20} /><strong>Browser companion</strong><span>Recommended for automatic refreshes. No passwords, cookies, or conversation content.</span></button>
+            <button type="button" disabled aria-pressed={draft.sourceType === 'browser_extension'}><Puzzle size={20} /><strong>Browser companion · Not installed yet</strong><span>Automatic provider connections are planned for a future release.</span></button>
             <button type="button" aria-pressed={draft.sourceType === 'manual'} onClick={() => setDraft((current) => ({ ...current, sourceType: 'manual' }))}><SlidersHorizontal size={20} /><strong>Manual entry</strong><span>Enter remaining percentage and reset time yourself. You can switch later.</span></button>
           </div>
         </> : null}
@@ -99,7 +105,7 @@ export function SetupFlow({ initialDraft = defaultDraft, saveDraft, onComplete }
 
       <footer className="setup-flow__footer">
         <button type="button" className="feature-button feature-button--quiet" disabled={step === 1 || saving} onClick={() => setStep((current) => current - 1)}><ChevronLeft size={16} />Back</button>
-        <button type="button" className="feature-button" disabled={saving} onClick={() => { void advance(); }}>{step === 4 ? 'Finish' : 'Save and continue'}<ChevronRight size={16} /></button>
+        <button type="button" className="feature-button" disabled={saving || (step >= 2 && draft.sourceType !== 'manual')} onClick={() => { void advance(); }}>{saving ? 'Saving…' : step === 4 ? 'Finish' : 'Save and continue'}<ChevronRight size={16} /></button>
       </footer>
     </section>
   );

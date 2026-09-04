@@ -4,10 +4,16 @@ import type { FeatureDescriptor } from '../windows/windowTypes';
 
 const ExternalWindowHostContext = createContext(false);
 
-export function selectExternalFeature(search: string, registry: Readonly<Record<string, FeatureDescriptor>>): FeatureDescriptor | null {
+export function injectedExternalFeatureId(browserWindow: Window): string | undefined {
+  const value = (browserWindow as Window & { __AI_USAGE_METER_EXTERNAL_FEATURE__?: unknown }).__AI_USAGE_METER_EXTERNAL_FEATURE__;
+  return typeof value === 'string' ? value : undefined;
+}
+
+export function selectExternalFeature(search: string, registry: Readonly<Record<string, FeatureDescriptor>>, injectedFeatureId?: string): FeatureDescriptor | null {
   const query = new URLSearchParams(search);
-  if (query.get('window') !== 'external') return null;
-  const feature = registry[query.get('feature') ?? ''];
+  const featureId = injectedFeatureId ?? (query.get('window') === 'external' ? query.get('feature') ?? '' : '');
+  if (!featureId) return null;
+  const feature = registry[featureId];
   return feature && feature.presentation !== 'internal' && (feature.ExternalContent ?? feature.InternalContent) ? feature : null;
 }
 

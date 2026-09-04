@@ -1,4 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { isTauriRuntime } from '../runtime/tauriRuntime';
 
 export interface NativeWindowService {
   minimize(): Promise<void>;
@@ -31,10 +32,6 @@ export function createNativeWindowService(adapter: CurrentNativeWindowAdapter): 
     close: () => adapter.close(),
     startDragging: () => adapter.startDragging(),
   };
-}
-
-export function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
 export function getNativeWindowService(): NativeWindowService {

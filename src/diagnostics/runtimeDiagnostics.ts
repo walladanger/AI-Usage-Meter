@@ -54,7 +54,7 @@ export function renderStartupFailure(host: HTMLElement, reason: unknown): void {
   const explanation = document.createElement('p');
   explanation.textContent = errorMessage(reason);
   const logLocation = document.createElement('p');
-  logLocation.textContent = 'Diagnostic log: %LOCALAPPDATA%\\com.aiusagemeter.desktop\\logs';
+  logLocation.textContent = 'Diagnostic log: %APPDATA%\\com.aiusagemeter.desktop\\logs\\startup-diagnostics.log';
   panel.append(heading, explanation, logLocation);
   host.append(panel);
 }

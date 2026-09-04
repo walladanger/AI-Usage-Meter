@@ -38,12 +38,18 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
 
     TrayIconBuilder::with_id("ai-usage-meter")
         .tooltip("AI Usage Meter")
-        .icon(app.default_window_icon().expect("bundle icon is required").clone())
+        .icon(
+            app.default_window_icon()
+                .expect("bundle icon is required")
+                .clone(),
+        )
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "open" => show_main(app, None),
-            "refresh" => { let _ = app.emit("usage://refresh-all", ()); }
+            "refresh" => {
+                let _ = app.emit("usage://refresh-all", ());
+            }
             "settings" => show_main(app, Some("settings")),
             "exit" => app.exit(0),
             _ => {}
@@ -53,7 +59,8 @@ pub fn install(app: &mut App) -> tauri::Result<()> {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
                 ..
-            } = event {
+            } = event
+            {
                 toggle_panel(tray.app_handle());
             }
         })

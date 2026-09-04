@@ -1,304 +1,143 @@
-# AI Usage Meter — Project Handover
+# AI Usage Meter — Complete Build Handover
 
-**Handover date:** 2026-09-04
+**Date:** 2026-09-04
 
 **Repository:** https://github.com/walladanger/AI-Usage-Meter
 
 **Canonical branch:** `main`
 
-**Verified application commit:** `fae5e47d538ff72274d39c324aa36b9106cd47e9` (`fix: render chart in production bundle`)
-**Project version:** `0.1.0` unsigned Windows verification build
+**Prepared release:** `0.1.4`, Windows 11 x64, unsigned NSIS
 
-## 1. Read this first
+**Installer:** `AI Usage Meter_0.1.4_x64-setup.exe`
 
-AI Usage Meter is a new, standalone repository cloned from Ember Studio Foundation. The original Ember repository must remain untouched and is only a design/infrastructure reference.
+**Size:** 3,320,009 bytes
+**SHA-256:** `2BAE7ACE4DFB4EE0A06683C74A29361C04C20F06BE7EC72D0BA05A2D0D3A9193`
 
-The user is the product and design owner and has very little coding experience. Translate visual and behavioral requests into implementation details without requiring technical terminology from the user.
+## Read this first
 
-The highest-priority working rule is:
+Read this document completely before changing anything. GitHub `main` is the source of truth; make a focused branch from current main. The approved dashboard is frozen. Do not edit `src/features/dashboard/Dashboard.tsx`, `Dashboard.test.tsx`, or `dashboard.css` without direct user approval. Its reference image is `docs/screenshots/ai-usage-meter-dashboard-approved.png`.
 
-> Modify only the requested feature or the agreed plan. Do not redesign, rename, move, refactor, remove, or “clean up” unrelated working code.
+Version every shipped iteration. This release is 0.1.4, so the next must be at least 0.1.5. Synchronize `package.json`, both root application entries in `package-lock.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
 
-Use GitHub `main` as the source of truth. Do not resume from the old local `feature/windows-verification-build` branch without first reconciling it with GitHub. That local branch contains equivalent changes under different commit SHAs because verified changes were published through the GitHub API. The safest continuation is a fresh clone of GitHub `main`, followed by a new focused feature branch.
+Manual Entry is the only implemented provider source in 0.1.4. Never claim automatic provider connectivity. The Browser Companion, loopback server, pairing, extension, and provider parsers are not implemented.
 
-## 2. Product goal
+## Product and design contract
 
-Build a local-first Windows 11 utility that shows, at a glance:
+AI Usage Meter is a local-first Windows utility intended to show remaining personal subscription allowance, reset timing, freshness, lowest allowance, and next reset for ChatGPT/Codex, Claude/Claude Code, and Gemini. Consumer subscription allowance and API organization billing are separate. Never substitute one for the other.
 
-1. Personal-plan usage remaining for ChatGPT/Codex, Claude/Claude Code, and Gemini.
-2. Which allowance is lowest.
-3. Which allowance resets next.
-4. When each allowance resets.
-5. Whether each value is current, stale, disconnected, or manually entered.
+Preserve the smoky-black Ember-derived frameless shell, restrained blue accents, sidebar, three equal provider cards, full-width seven-day chart, chart pop-out, navigation, tray, and custom title controls. Do not add the removed summary strip or right-side activity panel.
 
-Personal subscription allowances and API billing are separate products and data sources. Never imply that API usage represents ChatGPT, Claude, or Gemini consumer-plan usage.
+No cloud backend, telemetry, automated login, password capture, cookies, prompts, conversations, provider-page contents, or browsing history is approved. Future secrets belong in Windows Credential Manager or another OS-backed store, never SQLite, frontend settings, source, Git, or logs.
 
-- **Milestone 1:** personal subscriptions, local connectors, browser companion, manual fallback.
-- **Milestone 2:** OpenAI, Anthropic, and Google API usage, tokens, costs, credits, and billing.
+## Stack and build environment
 
-## 3. Approved design and non-negotiable UI decisions
+- React 19, TypeScript 7, Vite 8, Vitest 4, Testing Library/JSDOM.
+- Tauri 2.11, Rust 2021, SQLite through Tauri SQL, tray-icon and autostart plugins.
+- `time` 0.3 for local daily diagnostics.
+- ECharts through `echarts-for-react/esm/core`. The CommonJS import previously caused a production-only blank window; do not restore it.
+- NSIS Windows installer.
+- Node 20.19+, npm, stable Rust, Microsoft C++ Build Tools, WebView2, and Tauri Windows prerequisites.
 
-The approved visual target is:
+Windows Application Control on this machine blocks generated Rust test executables below hidden `.codex`. Always use an external target, e.g. `$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.5'`.
 
-`docs/screenshots/ai-usage-meter-dashboard-approved.png`
+## 0.1.4 report, diagnosis, and correction
 
-GitHub: https://github.com/walladanger/AI-Usage-Meter/blob/main/docs/screenshots/ai-usage-meter-dashboard-approved.png
+The user reported hover-only controls, Refresh with no apparent action, inert custom window controls, a blank-white chart pop-out, Sources freezing after Continue, no working provider connection, undiscoverable diagnostics, and version metadata stuck at 0.1.0.
 
-The selected dashboard direction is the revised “Image 1.” Preserve these decisions:
+Multiple faults were isolated:
 
-- Opaque smoky-black Ember-style Windows shell with restrained blue accents.
-- Frameless, resizable application with custom title-bar controls.
-- Sidebar collapse is a plain glyph at the top, not a boxed button.
-- No redundant collapse button at the bottom of the sidebar.
-- No top summary strip above the provider cards.
-- Three equal provider cards for OpenAI, Claude, and Gemini.
-- No recent-activity panel on the right.
-- Seven-day usage chart spans the full available application width.
-- Chart includes a real pop-out control using the existing native external-window system.
-- Preserve Overview, Refresh, Alerts, History, Sources, Settings, and Help navigation.
-- Do not change unrelated Ember shell behavior or styling.
+1. Native-runtime detection used fragile markers. Runtime selection is now centralized on Tauri's supported detection, restoring native window commands.
+2. Refresh lacked useful completion feedback. The refresh flow reports outcomes while retaining last-known provider values.
+3. Dynamic windows passed `index.html?window=external&feature=...` as a Tauri application path. Packaged resolution could produce an empty webview. Rust now loads exact `index.html` and injects a validated, non-writable `window.__AI_USAGE_METER_EXTERNAL_FEATURE__` before frontend modules run. Static/browser query routing remains supported.
+4. Sources falsely presented Browser Companion as available, although all automatic connector infrastructure is absent. Setup now defaults to Manual Entry, marks Browser Companion “Not installed yet” and disables it, shows `Saving…`, and fails visibly after five seconds rather than hanging indefinitely.
+5. The legacy logger wrote sparse events to one `startup-diagnostics.log`. Rust now owns daily rotation and safe read/list APIs, and Settings includes a log viewer.
 
-The image in the repository is the approved design target, not proof of a successfully running Windows build. A real installed-app screenshot has not yet been captured.
+## Diagnostics: exact behavior
 
-## 4. Architecture
+Daily logs are `%APPDATA%\com.aiusagemeter.desktop\logs\ai-usage-meter-YYYY-MM-DD.log`. Each launch records version and PID before later setup events. Sanitized native/frontend events cover bootstrap, window creation/failure, Settings persistence, and setup actions.
 
-- React 19 + TypeScript + Vite frontend.
-- Tauri 2 Windows desktop shell written in Rust.
-- SQLite local history through the Tauri SQL plugin.
-- Existing Ember native-window infrastructure for chart pop-outs.
-- Tauri tray icon, compact tray panel, and Windows startup setting.
-- Provider-neutral usage domain and adapters.
-- Planned Manifest V3 Chromium extension for personal subscription data.
-- Planned loopback-only ingestion service at `127.0.0.1:43127` with explicit pairing.
-- No cloud backend, telemetry, automated login, password capture, cookie export, or browsing-history collection.
-- Secrets must use Windows Credential Manager or another OS-backed abstraction. Never store secrets in SQLite, frontend persistence, logs, source, or Git.
+Retention is today plus the preceding 13 local calendar days. Pruning accepts only the exact daily filename pattern and never deletes unknown files or the legacy `startup-diagnostics.log`. Settings lists newest first and reads only a validated filename. Reads are capped at the newest 512 KiB and disclose truncation. The viewer refreshes, selects, displays, and copies only visible bounded text. Async generation guards prevent late responses from replacing newer selections.
 
-## 5. Implemented work
+Never log credentials, cookies, tokens, passwords, prompts, conversations, browsing history, provider HTML, allowance values, or reset timestamps. Logs remain local unless the user explicitly copies/uploads them.
 
-The following is present on GitHub `main`:
+Relevant files: `src-tauri/src/diagnostics.rs`, `src-tauri/src/lib.rs`, `src/diagnostics/diagnosticLogService.ts`, `src/diagnostics/appDiagnostics.ts`, `src/diagnostics/runtimeDiagnostics.ts`, `src/main.tsx`, and `src/features/settings/DiagnosticsSettingsCard.tsx`.
 
-- Separate AI Usage Meter identity and repository.
-- Approved Command Center dashboard.
-- OpenAI, Claude, and Gemini provider panels.
-- Normalized provider-neutral allowance model and calculations.
-- Manual allowance/reset entry with validation.
-- Independent provider refresh handling using last-good-value preservation.
-- SQLite schema, migration, repository boundary, and parameterized statements.
-- Seven-day ECharts usage chart.
-- Registered native chart pop-out window.
-- Overview, Refresh, Alerts, History, Sources, Settings, and Help pages.
-- Four-step guided setup flow.
-- Alert threshold evaluation; notifications are disabled by default.
-- Compact tray panel.
-- Tauri system-tray menu with Dashboard, Refresh, Settings, and Exit.
-- Close-to-tray behavior and explicit Windows startup preference.
-- Startup diagnostics before and during frontend initialization.
-- Readable startup recovery screen instead of an entirely blank window.
-- GitHub CI, Windows native compile check, Windows installer artifact, CodeQL, and Dependabot.
+## Provider/source truth
 
-Some screens currently use fixture/manual data because automatic personal-plan connectors have not been implemented.
+Manual Entry and local persistence exist. The Rust loopback ingestion service, short-lived pairing, OS-backed pairing secret, Manifest V3 extension, ChatGPT/Codex parser, Claude parser, Gemini parser, sanitized parser fixtures, fail-closed update detection, and real-account Chrome/Edge validation do not exist.
 
-## 6. Most recent failure and correction
+`SourcesPage.tsx` must say this honestly. `SetupFlow.tsx` defaults to `manual`. A legacy `browser_extension` draft must be changed to Manual Entry before completion. `src/runtime/withTimeout.ts` supplies the five-second persistence boundary.
 
-### User-observed failure
+## Window architecture
 
-The first Windows installer opened to a blank application. After startup diagnostics were added, the next build displayed:
+External features are registered in `src/windows/windowRegistry.ts`. `open_external_feature_window` validates feature ID and label, creates plain `index.html`, injects its feature ID in the initialization script, and records sanitized lifecycle events. React resolves that identity before mounting the main shell. Unknown or internal-only features must fail closed. Native controls go through `src/windows/nativeWindowService.ts`; browser tests use safe adapters.
 
-`Minified React error #130 ... args[]=object`
+## Verification evidence
 
-### Root cause
+Completed locally on Windows 11 on 2026-09-04:
 
-`src/features/dashboard/UsageTrendChart.tsx` imported the CommonJS chart wrapper:
+- `npm test`: 40 files and 124 tests passed.
+- `npm run build`: TypeScript and optimized Vite bundle passed.
+- `npm run test:production-bundle`: optimized bundle rendered Command Center.
+- Rust formatting passed.
+- `cargo test`: five native tests passed.
+- `cargo check`: passed.
+- Dashboard diff against approved commit `2850703d2f4be6e667af12637ce13f21db68ee18`: no content difference (line-ending warnings only).
+- NSIS build passed.
+- Release executable: 13,424,128 bytes; ProductVersion/FileVersion 0.1.4.
+- Installer: 3,320,009 bytes; ProductVersion/FileVersion 0.1.4; SHA-256 shown above.
+- A controlled five-second launch of only the new release executable appended the 0.1.4 version/PID, native setup, frontend module load, and React render to today's daily log. Only the process created by that check was stopped.
 
-```ts
-import ReactEChartsCore from 'echarts-for-react/lib/core';
-```
+Automated checks do not prove mouse interaction. The separately installed 0.1.3 process was not terminated or overwritten. The user must install 0.1.4 and physically verify title controls, Refresh, populated pop-out, Sources Manual Entry, Settings diagnostics, tray, persistence, startup preference, and uninstall. Record failures with screenshot plus daily log before editing.
 
-The optimized production bundler wrapped that import so React received an object instead of a component. The existing unit test mocked the same CommonJS path and therefore hid the production-only problem.
+## Development and release commands
 
-### Applied correction
-
-The chart now imports the package's ESM component:
-
-```ts
-import ReactEChartsCore from 'echarts-for-react/esm/core';
-```
-
-The dashboard test mock was updated to the ESM path. A production-bundle smoke test was added at `scripts/smoke-production-bundle.mjs`, exposed as:
-
-```bash
-npm run test:production-bundle
-```
-
-The smoke test imports the actual optimized Vite bundle in JSDOM and fails unless the real application renders `Command Center`. GitHub CI now runs this test after every frontend production build.
-
-Do not remove this regression test or change the chart import back to `echarts-for-react/lib/core`.
-
-## 7. Current verification evidence
-
-Verification for commit `fae5e47d538ff72274d39c324aa36b9106cd47e9`:
-
-- `npm test`: **38 test files passed; 118 tests passed**.
-- `npm run build`: **passed** (TypeScript project build and optimized Vite build).
-- `npm run test:production-bundle`: **passed; dashboard rendered**.
-- GitHub Windows Tauri `cargo check`: **passed**.
-- GitHub Windows NSIS installer build: **passed**.
-- GitHub CodeQL run: **passed**.
-- Git diff whitespace check before publishing: **passed**.
-
-CI run: https://github.com/walladanger/AI-Usage-Meter/actions/runs/33825661696
-
-CodeQL run: https://github.com/walladanger/AI-Usage-Meter/actions/runs/33825661693
-
-Windows artifact:
-
-- Name: `ai-usage-meter-windows-test-installer`
-- Artifact ID: `9920100679`
-- Download: https://github.com/walladanger/AI-Usage-Meter/actions/runs/33825661696/artifacts/9920100679
-- SHA-256 reported by GitHub: `516987baf9caf9e595ec5a539ba9437c930540e6054e80a8cf8d10648b46375c`
-- GitHub retention expiry: 2026-09-18
-
-This is an unsigned verification installer. Windows SmartScreen may show an unknown-publisher warning.
-
-## 8. Immediate next action
-
-The corrected installer has passed automated and Windows compilation/package checks, but the user has not yet confirmed the corrected build on their physical Windows computer.
-
-Before starting connector development, ask the user to:
-
-1. Completely exit the earlier AI Usage Meter process, including its tray icon.
-2. Download and extract artifact `9920100679`.
-3. Run the `.exe` installer.
-4. Confirm the dashboard—not the React error screen—appears.
-5. Work through `docs/windows-test-checklist.md`, especially launch, resize, tray, chart pop-out, navigation, manual entry, persistence, startup preference, and uninstall.
-6. Provide a screenshot of the real installed dashboard if possible.
-
-Do not claim the Windows runtime is fully verified until the user completes this check. Automated evidence proves the optimized frontend renders and the Windows package compiles; it does not replace physical Windows interaction testing.
-
-## 9. Diagnostics
-
-Verbose startup logging is already implemented. The Windows log is:
-
-`%LOCALAPPDATA%\com.aiusagemeter.desktop\logs\startup-diagnostics.log`
-
-Native startup markers are written before the webview is displayed. Frontend bootstrap, module loading, rendering, uncaught browser errors, unhandled promise rejections, and React error-boundary failures are recorded. Logs must remain free of secrets, browser page contents, cookies, and tokens.
-
-If the corrected build still fails, collect:
-
-- Exact visible error text.
-- Screenshot.
-- The diagnostic log above.
-- Windows version, display resolution, and scaling.
-- The installer artifact/run number used.
-
-Then reproduce the failure with the smallest focused test before changing production code.
-
-## 10. Remaining Milestone 1 work
-
-### Not implemented
-
-1. Secure Rust loopback ingestion service.
-2. Short-lived pairing code and long-lived OS-backed credential storage.
-3. Strict origin, payload, provider, timestamp, percentage, label, and 16 KiB size validation.
-4. Chromium Manifest V3 browser companion.
-5. Provider-specific ChatGPT/Codex, Claude/Claude Code, and Gemini page parsers.
-6. Sanitized parser fixtures and fail-closed `connector_update_required` behavior.
-7. Real-account connector validation in Chrome and Edge.
-8. Provider capability matrix using current official documentation.
-9. Browser extension installation guide.
-10. Privacy/security documentation for permissions, retained data, and endpoints.
-11. Complete visual comparison at `1440x1024` against the approved design.
-12. Complete physical Windows acceptance checklist.
-
-### Partially implemented or requiring physical verification
-
-- Tray behavior and compact panel: implemented and compiled; needs real Windows interaction verification.
-- SQLite persistence: covered by frontend repository tests; needs installed-app restart verification.
-- Chart pop-out: frontend/native routing tests pass; needs real Windows interaction verification.
-- Windows startup preference: implemented and compiled; needs real startup verification.
-- Notifications: threshold logic and UI exist; native notification behavior needs later verification.
-
-### Deferred Milestone 2
-
-- OpenAI organization Usage and Costs APIs.
-- Anthropic organization usage/cost reporting.
-- Gemini API and Google Cloud billing.
-- API keys, secure provider credential setup, organization/project selection.
-- Token, request, model, cached-token, credit, and spend history.
-- Additional providers.
-
-The user has or has had API keys for all three providers, but those must not be used until Milestone 2 and must never be requested in chat or committed to the repository.
-
-## 11. Recommended continuation order
-
-1. Receive and record the user's result from the corrected Windows installer.
-2. Fix only any installation/runtime blocker revealed by that test.
-3. Capture an actual installed-app screenshot after launch succeeds.
-4. Complete the Windows acceptance checklist for the already-built foundation.
-5. Start Milestone 1 Task 9: secure loopback pairing and validated ingestion.
-6. Build the Chromium extension shell and pairing flow.
-7. Implement one provider parser at a time: ChatGPT/Codex, Claude/Claude Code, then Gemini.
-8. Research and document capability boundaries using current official sources before labeling any connector supported.
-9. Test against accounts the user controls; mark untested connectors as implemented but unverified.
-10. Finish privacy, installation, visual-QA, and release documentation.
-11. Begin Milestone 2 API billing only after Milestone 1 is stable.
-
-Use test-driven development for every bug fix and feature. Run the full test/build suite and the production-bundle smoke test before publishing another installer.
-
-## 12. Key files
-
-| Purpose | File |
-|---|---|
-| Approved product specification | `docs/superpowers/specs/2026-09-03-ai-usage-meter-design.md` |
-| Milestone 1 implementation plan | `docs/superpowers/plans/2026-09-03-ai-usage-meter-milestone-1.md` |
-| Approved dashboard image | `docs/screenshots/ai-usage-meter-dashboard-approved.png` |
-| Windows test checklist | `docs/windows-test-checklist.md` |
-| GitHub workflow | `.github/workflows/ci.yml` |
-| Application composition | `src/app/App.tsx` |
-| Dashboard | `src/features/dashboard/Dashboard.tsx` |
-| Chart and corrected import | `src/features/dashboard/UsageTrendChart.tsx` |
-| Production launch smoke test | `scripts/smoke-production-bundle.mjs` |
-| Usage domain | `src/usage/usageTypes.ts`, `src/usage/usageMath.ts` |
-| Usage state/controller | `src/usage/usageStore.tsx` |
-| Manual adapter | `src/usage/manualUsageAdapter.ts` |
-| SQLite adapter | `src/usage/tauriSqlUsageRepository.ts` |
-| SQLite migration | `src-tauri/migrations/0001_usage.sql` |
-| Tray implementation | `src-tauri/src/tray.rs`, `src/features/tray/TrayPanel.tsx` |
-| Startup behavior | `src-tauri/src/startup.rs` |
-| Native diagnostics | `src-tauri/src/diagnostics.rs` |
-| Frontend diagnostics | `src/diagnostics/`, `src/main.tsx` |
-
-## 13. Development and verification commands
-
-Requirements: Node.js 20.19 or newer, npm, Rust stable, and Tauri 2 Windows prerequisites for native work.
-
-```bash
+```powershell
 npm ci
 npm test
 npm run build
 npm run test:production-bundle
+$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.5'
+cargo fmt --manifest-path src-tauri/Cargo.toml --check
+cargo test --manifest-path src-tauri/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 npm run tauri:build -- --bundles nsis
 ```
 
-The current Linux workspace can verify React, TypeScript, Vite, and the optimized bundle. Use GitHub Actions or a properly configured Windows machine for the native Tauri and NSIS checks.
+Do not commit generated `src-tauri/Cargo.lock` or `src-tauri/gen/` unless repository policy deliberately changes; the root `Cargo.lock` is canonical. Before every release: synchronize version; run all gates; prove the frozen dashboard has no diff; build NSIS; inspect version/size/hash; launch only the new executable and confirm the daily log; commit/push; wait for CI/CodeQL; publish the exact verified installer; then complete `docs/windows-test-checklist.md`.
 
-## 14. Scope and security guardrails
+## Remaining Milestone 1 work
 
-- Never invent provider APIs or allowance values.
-- Never equate consumer subscriptions with API billing.
-- Never scrape private account pages without explicit documented approval.
-- Never automate provider login.
-- Never collect passwords, cookies, conversations, prompts, or browsing history.
-- Bind the future ingestion server only to `127.0.0.1`, never all interfaces.
-- Require explicit pairing and strict input validation.
-- Never log or store secrets.
-- Keep notifications disabled by default.
-- Preserve last good provider values during isolated connector failures and mark them stale.
-- Do not automatically reset usage to 100% when a timer expires; wait for a confirmed observation.
-- Do not introduce Lovable or Hugging Face into Milestone 1. They are not needed for this utility.
-- Do not alter the approved dashboard or unrelated Ember foundation behavior without direct user approval.
+1. Complete physical 0.1.4 acceptance and fix only evidence-backed blockers.
+2. Build a loopback service bound strictly to `127.0.0.1`, never all interfaces.
+3. Add short-lived pairing and OS-backed long-lived secrets.
+4. Validate origin, provider, timestamp, percentage, label and a maximum 16 KiB payload.
+5. Build a least-privilege Manifest V3 Chromium companion.
+6. Implement one fail-closed parser at a time: ChatGPT/Codex, Claude/Claude Code, Gemini.
+7. Use sanitized fixtures and return `connector_update_required` for unknown page structure.
+8. Test only with accounts the user controls in Chrome and Edge; call untested work “implemented but unverified.”
+9. Finish extension installation, permissions, privacy, retention, and endpoint documentation.
+10. Start API billing/cost work only after Milestone 1 is stable.
 
-## 15. Suggested opening message for the new chat
+Never invent provider APIs or values; automate login; bypass access controls; reset allowance to 100% because a timer expired; or let one provider failure discard other last-good values. Notifications remain off by default and connector failure should mark retained data stale/disconnected.
 
-> Continue building AI Usage Meter from the handover at `docs/HANDOFF.md` in https://github.com/walladanger/AI-Usage-Meter. Treat GitHub `main` as the source of truth and preserve the approved dashboard. First confirm my result from corrected Windows artifact `9920100679`; do not begin connector work until any launch blocker is resolved. Then continue with the remaining Milestone 1 work in the documented order. Make only targeted changes, test them, and do not claim Windows behavior works without evidence.
+## High-value file map
+
+| Purpose | File |
+|---|---|
+| Approved design/spec | `docs/superpowers/specs/2026-09-03-ai-usage-meter-design.md` |
+| 0.1.4 design and plan | `docs/superpowers/specs/2026-09-04-diagnostics-and-runtime-stabilization-design.md`, `docs/superpowers/plans/2026-09-04-diagnostics-runtime-stabilization.md` |
+| Windows acceptance | `docs/windows-test-checklist.md` |
+| Composition | `src/app/App.tsx` |
+| Frozen dashboard | `src/features/dashboard/Dashboard.tsx`, `Dashboard.test.tsx`, `dashboard.css` |
+| External windows | `src/external-windows/ExternalWindowRoute.tsx`, `src-tauri/src/lib.rs` |
+| Native controls | `src/windows/nativeWindowService.ts` |
+| Sources/setup | `src/features/sources/SourcesPage.tsx`, `src/features/setup/SetupFlow.tsx` |
+| Usage/manual/SQLite | `src/usage/`, `src-tauri/migrations/0001_usage.sql` |
+| Diagnostics | `src-tauri/src/diagnostics.rs`, `src/diagnostics/`, `src/features/settings/DiagnosticsSettingsCard.tsx` |
+| Tray/startup | `src-tauri/src/tray.rs`, `src-tauri/src/startup.rs`, `src/features/tray/TrayPanel.tsx` |
+| Production regression | `scripts/smoke-production-bundle.mjs` |
+
+## Suggested continuation prompt
+
+> Continue AI Usage Meter from GitHub main and read docs/HANDOFF.md completely. Preserve the approved dashboard and increment version from 0.1.4. First collect installed 0.1.4 acceptance results and its daily diagnostic log for any failed interaction. Do not claim automatic provider support without the documented loopback, pairing, extension, parser, security, and real-account work. Make targeted tested changes, build and verify a versioned installer, publish it, and update the handover with exact evidence.

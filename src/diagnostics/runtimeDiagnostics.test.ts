@@ -43,6 +43,6 @@ describe('runtime diagnostics', () => {
 
     expect(host).toHaveTextContent('AI Usage Meter could not start');
     expect(host).toHaveTextContent('Dashboard import failed');
-    expect(host).toHaveTextContent('%LOCALAPPDATA%\\com.aiusagemeter.desktop\\logs');
+    expect(host).toHaveTextContent('%APPDATA%\\com.aiusagemeter.desktop\\logs\\startup-diagnostics.log');
   });
 });
