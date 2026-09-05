@@ -1,8 +1,12 @@
+import colors from 'tailwindcss/colors';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, useTheme } from './themeStore';
 import { SettingsProvider } from '../settings/settingsStore';
 import { createMemorySettingsAdapter, createSettingsService, defaultSettings } from '../settings/settingsService';
+
+const palette = colors as unknown as Record<string, Record<string, string>>;
+const cyan400 = palette.cyan[400];
 
 function ThemeProbe() {
   const { selection, tokens, setSelection } = useTheme();
@@ -28,9 +32,9 @@ test('applies the selected profile to semantic CSS variables', () => {
     </ThemeProvider>,
   );
 
-  expect(screen.getByTestId('accent-value')).toHaveTextContent('#22d3ee');
-  expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#22d3ee');
-  expect(document.documentElement.style.getPropertyValue('--focus-ring')).toBe('#22d3ee');
+  expect(screen.getByTestId('accent-value')).toHaveTextContent(cyan400);
+  expect(document.documentElement.style.getPropertyValue('--accent')).toBe(cyan400);
+  expect(document.documentElement.style.getPropertyValue('--focus-ring')).toBe(cyan400);
 });
 
 test('updates only accent variables when a palette swatch is selected', () => {
@@ -45,7 +49,7 @@ test('updates only accent variables when a palette swatch is selected', () => {
 
   fireEvent.click(screen.getByRole('button', { name: 'Choose cyan' }));
 
-  expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#22d3ee');
+  expect(document.documentElement.style.getPropertyValue('--accent')).toBe(cyan400);
   expect(getComputedStyle(document.documentElement).getPropertyValue('--surface')).toBe(surfaceBefore);
   expect(getComputedStyle(document.documentElement).getPropertyValue('--divider')).toBe(dividerBefore);
 });
@@ -60,7 +64,7 @@ test('uses and persists the profile selection through generic settings', async (
     </SettingsProvider>,
   );
 
-  expect(screen.getByTestId('accent-value')).toHaveTextContent('#22d3ee');
+  expect(screen.getByTestId('accent-value')).toHaveTextContent(cyan400);
   await user.click(screen.getByRole('button', { name: 'Choose cyan' }));
   await expect(service.load()).resolves.toMatchObject({ colorProfile: { family: 'cyan', shade: 400 } });
 });

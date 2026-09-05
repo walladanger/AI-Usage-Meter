@@ -68,8 +68,12 @@ export function getColorHex(family: string, shade?: ColorShade): string {
   return getColor(family, shade);
 }
 
-function withAlpha(hex: string, alpha: string): string {
-  return `${hex}${alpha}`;
+function withAlpha(color: string, alphaHex: string): string {
+  if (color.startsWith('oklch(')) {
+    const alpha = (parseInt(alphaHex, 16) / 255).toFixed(3);
+    return color.replace(/\)$/, ` / ${alpha})`);
+  }
+  return `${color}${alphaHex}`;
 }
 
 export function buildAccentTokens(selection: ColorProfileSelection): AccentTokens {
