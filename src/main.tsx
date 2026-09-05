@@ -13,6 +13,10 @@ import './styles/index.css';
   const params = new URLSearchParams(window.location.search);
   const isExternal = typeof injected === 'string' || params.get('window') === 'external';
   if (isExternal) document.documentElement.classList.add('ai-external-window');
+  // The tray panel is a transparent native window, so it must not paint the opaque
+  // page background that index.html sets to avoid a white flash in the other windows.
+  const feature = typeof injected === 'string' ? injected : params.get('feature');
+  if (feature === 'tray-panel') document.documentElement.classList.add('ai-tray-panel');
 }());
 
 const host = document.getElementById('root');

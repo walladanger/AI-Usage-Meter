@@ -1,4 +1,29 @@
-.tray-panel { display: grid; gap: 0.75rem; min-height: 100%; padding: 0.85rem; color: #f2f6f8; background: #0c1115; }
+/* The tray panel is a transparent native window. `html.ai-tray-panel` (set in main.tsx)
+   outranks the opaque html/body rule in index.html on specificity, so ordering does not
+   matter. Only this window is affected; the chart pop-out stays opaque. */
+html.ai-tray-panel,
+html.ai-tray-panel body { background: transparent; }
+html.ai-tray-panel body { overflow: hidden; }
+
+.tray-panel {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 0.85rem;
+  color: #f2f6f8;
+  /* Semi-transparent so the desktop shows through, per the tray brief. */
+  background: rgba(12, 17, 21, 0.86);
+  border: 1px solid rgba(120, 142, 158, 0.28);
+  border-radius: 0.6rem;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.5);
+  /* Blurs the backdrop where WebView2 supports it; the alpha above carries the effect otherwise. */
+  backdrop-filter: blur(20px) saturate(120%);
+}
+
+/* Inner surfaces lift slightly so they stay readable over a busy desktop. */
+html.ai-tray-panel .tray-panel__providers article { background: rgba(21, 28, 33, 0.9); }
+html.ai-tray-panel .tray-panel__summary { background: rgba(17, 24, 29, 0.9); }
+html.ai-tray-panel .tray-panel footer button { background: rgba(23, 33, 41, 0.92); }
 .tray-panel > header,
 .tray-panel > header > div,
 .tray-panel footer,
@@ -30,3 +55,6 @@
 .tray-panel footer button:first-child { flex: 1; color: #edf7ff; background: #1677c8; border-color: #3195e4; }
 .tray-panel footer button:focus-visible,
 .tray-panel > header > button:focus-visible { outline: 2px solid #57a9e8; outline-offset: 2px; }
+
+/* Full-height wrapper carrying the pointer-enter/leave handlers. */
+.tray-panel-host { display: grid; min-height: 100vh; }

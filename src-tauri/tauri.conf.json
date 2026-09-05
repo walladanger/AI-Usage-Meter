@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "AI Usage Meter",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "identifier": "com.aiusagemeter.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -26,7 +26,8 @@
         "url": "index.html?window=external&feature=tray-panel",
         "visible": false,
         "decorations": false,
-        "transparent": false,
+        "transparent": true,
+        "shadow": false,
         "resizable": false,
         "alwaysOnTop": true,
         "skipTaskbar": true,
