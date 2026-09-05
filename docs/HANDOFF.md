@@ -276,16 +276,30 @@ Unchanged from 0.1.6. Loopback listener exists in `src-tauri/src/loopback.rs`.
 `%APPDATA%\com.aiusagemeter.desktop\logs\`, one file per day. A healthy 0.1.7 log is small —
 if it is tens of MB again, a save loop has regressed.
 
+
+
 ---
 
-## Installer Delivery (0.1.7)
+## Installer Delivery (0.1.8)
 
-- **File:** `AI Usage Meter_0.1.7_x64-setup.exe`
-- **Size:** 4,570,704 bytes
-- **SHA-256:** `96E5068C047B79F54E2C54B2DB79521BBABE2C786FDC8B7CC91901F3FB94BCD6`
-- **Built:** 2026-09-05 12:32
+- **File:** `AI Usage Meter_0.1.8_x64-setup.exe`
+- **Size:** 4,569,026 bytes
+- **SHA-256:** `4032147FE663DD87990BECCD299228D452C803E2770030C992EF7F9EC6BF86C4`
+- **Built:** 2026-09-05 16:31 from `5dd5627` (pushed to origin/main)
 - **Path:** `C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.8\release\bundle\nsis\`
 
-Contains the settings-loop fix, the OpenAI/Anthropic connectors with Windows Credential
-Manager storage, Settings → Providers, the Sources API-usage panel, and the hover tray panel.
+Supersedes 0.1.7, whose Anthropic cost figures were 100x too high.
+
 **Not yet installed or exercised by a human, and no connector has seen a real key.**
+
+### Acceptance checklist
+
+1. Chart pop-out renders content; its X closes it.
+2. Hovering the tray icon shows the panel near the icon; it stays open when the pointer
+   moves into it; it is semi-transparent.
+3. `%APPDATA%\com.aiusagemeter.desktop\logs\` stays small. Tens of MB means the save loop
+   has regressed.
+4. Settings > Providers accepts an admin key and reports "Configured".
+5. Sources page shows real token/cost figures after a refresh, or a clear error.
+
+See `docs/HANDOVER-0.1.8.md` for the full continuation brief and the Codex connector test.

@@ -38,8 +38,8 @@ Legend: **SUPPORTED** · **PARTIAL** · **NOT AVAILABLE** · **MANUAL FALLBACK**
 | API token usage | **SUPPORTED** [1] | **SUPPORTED** [4] | **PARTIAL** [7] |
 | API cost | **SUPPORTED** [2] | **SUPPORTED** [5] | **PARTIAL** [8] |
 | Prepaid credit balance | **NOT AVAILABLE** | **NOT AVAILABLE** | **NOT AVAILABLE** |
-| Subscription allowance | **PARTIAL** — no REST API, but the Codex CLI app-server exposes it locally (see Addendum, Correction 1; unverified) | **NOT AVAILABLE** → MANUAL FALLBACK [6] | **NOT AVAILABLE** → MANUAL FALLBACK |
-| Reset time | **PARTIAL** — `resetsAt` via the Codex app-server (see Addendum; unverified) | **NOT AVAILABLE** → MANUAL FALLBACK | **NOT AVAILABLE** → MANUAL FALLBACK |
+| Subscription allowance | **SUPPORTED (VERIFIED)** — Codex CLI app-server, local JSON-RPC. Returned real data 2026-09-05 on codex-cli 0.148.0-alpha.9. See Addendum Correction 1. | **NOT AVAILABLE** → MANUAL FALLBACK [6] | **NOT AVAILABLE** → MANUAL FALLBACK |
+| Reset time | **SUPPORTED (VERIFIED)** — `resetsAt` (unix seconds) per bucket via the Codex app-server | **NOT AVAILABLE** → MANUAL FALLBACK | **NOT AVAILABLE** → MANUAL FALLBACK |
 | Model-level usage | **SUPPORTED** (`group_by=model`) [1] | **SUPPORTED** (`group_by[]=model`) [4] | **PARTIAL** [7] |
 | Rate limits | **PARTIAL** — `x-ratelimit-*` response headers (see Addendum) | **SUPPORTED** (Rate Limits API) [9] | **PARTIAL** (quota metrics) [7] |
 | Official API? | Yes | Yes | Only via Cloud Monitoring / Billing |
@@ -284,3 +284,83 @@ works as a free Gemini key-validation check.
 
 Backwards-compatibility note: OpenAI documents "adding new properties to JSON response objects"
 as a non-breaking change, which validates the tolerant field-matching used in `providers.rs`.
+
+
+---
+
+# Addendum 2 — 2026-09-05, Codex app-server VERIFIED
+
+**Correction 1 of Addendum 1 is now verified against a real account.** This is the first
+source in this project confirmed to return live data.
+
+| | |
+|---|---|
+| Binary | `C:\Users\Warwick\.codex\.sandbox-bin\codex.exe` (not on PATH) |
+| Version | `codex-cli 0.148.0-alpha.9` |
+| Subcommand | `codex app-server` — marked `[experimental]` in `--help` |
+| Result | `initialize` and `account/rateLimits/read` both returned successfully |
+
+## Two things the prose docs did not tell us
+
+### 1. The reply is asynchronous — stdin must stay open
+
+Piping both messages and letting stdin close returns **only** the `initialize` result. The
+process exits on EOF before the rate-limit reply is produced. This looks exactly like "the
+method does not exist". Hold the pipe open:
+
+```bash
+{ printf '%s\n' '<initialize>'; sleep 2; printf '%s\n' '<rateLimits/read>'; sleep 18; } | codex app-server
+```
+
+Any connector must keep the child process alive, not fire-and-forget.
+
+### 2. The response is richer than documented
+
+The published example shows `primary`, `secondary`, `limitId`, `limitName` and
+`rateLimitReachedType`. This build additionally returns, **per bucket**:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `secondary` | window object | A second window (weekly) alongside the 5-hour `primary` |
+| `credits.hasCredits` | bool | Whether purchased credits exist |
+| `credits.unlimited` | bool | Unlimited plan flag |
+| `credits.balance` | string | Credit balance as a decimal string — parse as decimal |
+| `individualLimit` | object/null | Per-individual limit within a workspace |
+| `spendControlReached` | bool | Spend control triggered |
+| `planType` | string | ChatGPT plan, e.g. `plus` |
+
+Window objects carry `usedPercent`, `windowDurationMins`, `resetsAt` (unix seconds).
+Observed windows: `300` mins (5-hour) as primary, `10080` mins (weekly) as secondary.
+
+`rateLimitResetCredits` returns `availableCount` plus detail rows with `id`, `resetType`,
+`status`, `grantedAt`, `expiresAt`, `title`, `description`.
+
+## Method surface confirmed in this build
+
+`codex app-server generate-json-schema --out <DIR>` emits the full protocol schema. This is
+the authoritative check for a given CLI version. Confirmed present:
+
+```
+account/rateLimits/read          account/rateLimits/updated
+account/usage/read               account/rateLimitResetCredit/consume
+account/read                     account/updated
+account/workspaceMessages/read   account/sendAddCreditsNudgeEmail
+account/login/start              account/login/completed
+account/login/cancel             account/logout
+account/chatgptAuthTokens/refresh
+```
+
+**Run `generate-json-schema` before trusting any method name** — this is an experimental,
+alpha-versioned surface and it will drift.
+
+## Implementation notes
+
+* Map `100 - usedPercent` to `remainingPercent`, `resetsAt` to `resetAt`, and
+  `windowDurationMins` to `windowLabel`. This is the first source that may legitimately
+  populate those fields; every API connector deliberately leaves them undefined.
+* `sourceType: 'cli'` (already in the union, unused), source label `codex_cli`.
+* Prefer subscribing to `account/rateLimits/updated` over polling.
+* Degrade to manual entry — never error the app — when the CLI is absent, logged out, or a
+  version whose surface differs.
+* Per security constraint 3, allowance values and reset timestamps must **not** be written
+  to the diagnostic log. Log the outcome state only, as the API connectors already do.
