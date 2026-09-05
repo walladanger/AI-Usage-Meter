@@ -43,7 +43,7 @@ Legend: **SUPPORTED** · **PARTIAL** · **NOT AVAILABLE** · **MANUAL FALLBACK**
 | Model-level usage | **SUPPORTED** (`group_by=model`) [1] | **SUPPORTED** (`group_by[]=model`) [4] | **PARTIAL** [7] |
 | Rate limits | **PARTIAL** — `x-ratelimit-*` response headers (see Addendum) | **SUPPORTED** (Rate Limits API) [9] | **PARTIAL** (quota metrics) [7] |
 | Official API? | Yes | Yes | Only via Cloud Monitoring / Billing |
-| Authentication required | **Admin key** [1] | **Admin key** `sk-ant-admin01-...` [4] | GCP OAuth / service account [7] |
+| Authentication required | **Admin key** [1] | Admin key **or any non-workspace-scoped personal/service key** [4] | GCP OAuth / service account [7] |
 
 ---
 
@@ -52,10 +52,18 @@ Legend: **SUPPORTED** · **PARTIAL** · **NOT AVAILABLE** · **MANUAL FALLBACK**
 1. **Anthropic's Admin API is unavailable for individual accounts.** The docs state this
    explicitly: the account must be an organization (Console → Settings → Organization). A personal
    Claude Pro/Max subscription alone **cannot** use the usage/cost endpoints. [4]
-2. **Both OpenAI and Anthropic require an *admin* key, not a standard API key.** Workspace-scoped
-   Anthropic keys are rejected. OpenAI admin keys come from Settings → Organization → Admin keys.
+2. **Anthropic: it is the key's SCOPE that matters, not its prefix.** The usage/cost sections state
+   three times: "You can access them using an Admin API key, an OAuth token with the `org:admin`
+   scope, **or a personal or service account key that isn't scoped to a workspace**; workspace API
+   keys don't work." So an ordinary `sk-ant-api03-` **personal key with Organization scope works**;
+   a `sk-ant-api03-` **workspace-scoped** key does not. Do not tell users they need
+   `sk-ant-admin01-` specifically. OpenAI does require an admin key from
+   Settings → Organization → Admin keys.
 3. **Claude Enterprise (claude.ai) uses a different API** (Analytics API key), not the Admin API. [4]
 4. **Anthropic recommends polling at most once per minute.** The 5-minute default is safe. [4]
+   **These reporting endpoints are not billed per call.** Anthropic bills for inference tokens;
+   `usage_report` and `cost_report` run no model. No statement to the contrary exists anywhere in
+   the documentation. The binding constraint is the rate limit, not cost.
 5. **Gemini has no equivalent single endpoint.** Usage must be derived from Cloud Monitoring
    time-series, requiring a GCP project with the Monitoring API enabled plus OAuth/service-account
    credentials — a materially heavier setup than an API key. [7]

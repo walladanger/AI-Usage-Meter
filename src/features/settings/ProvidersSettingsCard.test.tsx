@@ -13,6 +13,13 @@ function service(overrides: Partial<ProviderCredentialsService> = {}): ProviderC
   };
 }
 
+test('states that a non-workspace-scoped Anthropic key is acceptable', () => {
+  render(<ProvidersSettingsCard service={service()} />);
+
+  // Anthropic accepts a personal Organization-scoped key, not only sk-ant-admin01-.
+  expect(screen.getByText(/NOT scoped to a workspace/)).toBeInTheDocument();
+});
+
 test('shows which providers are configured without revealing the key', async () => {
   render(<ProvidersSettingsCard service={service({
     status: async (providerId) => providerId === 'openai'
@@ -87,5 +94,5 @@ test('the card states that these connectors do not read subscription allowance',
   render(<ProvidersSettingsCard service={service()} />);
 
   expect(screen.getByText(/organization API usage and cost/)).toBeInTheDocument();
-  expect(screen.getByText(/no provider offers an\s+API for subscription allowance/i)).toBeInTheDocument();
+  expect(screen.getByText(/No provider offers a REST API for allowance/i)).toBeInTheDocument();
 });

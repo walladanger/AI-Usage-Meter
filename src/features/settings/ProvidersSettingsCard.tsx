@@ -21,7 +21,10 @@ interface ProviderDefinition {
 /**
  * Wording here follows docs/provider-capability-matrix.md and must not overstate what a key
  * unlocks. Both supported connectors read *organization API* usage and cost — never
- * subscription allowance, which no provider exposes programmatically.
+ * subscription allowance, which no provider exposes over REST.
+ *
+ * Anthropic accepts any key that is not workspace-scoped, so do not tell users they need an
+ * `sk-ant-admin01-` key specifically: a personal key with Organization scope works.
  */
 const PROVIDERS: readonly ProviderDefinition[] = [
   {
@@ -29,14 +32,14 @@ const PROVIDERS: readonly ProviderDefinition[] = [
     label: 'OpenAI',
     connector: 'available',
     keyLabel: 'Admin API key',
-    guidance: 'Requires an organization admin key (Settings → Organization → Admin keys). Reads API token usage and cost. It cannot report ChatGPT or Codex plan allowance — no endpoint exists for that.',
+    guidance: 'Requires an organization admin key (Settings → Organization → Admin keys). Reads API token usage and cost. It cannot report ChatGPT or Codex plan allowance — no REST endpoint exists for that; the Codex CLI exposes it locally instead.',
   },
   {
     id: 'anthropic',
     label: 'Anthropic',
     connector: 'available',
-    keyLabel: 'Admin API key (sk-ant-admin01-…)',
-    guidance: 'Requires an organization admin key; the Admin API is unavailable to individual accounts, and workspace-scoped keys are rejected. Reads API token usage and cost, not Claude Pro/Max allowance.',
+    keyLabel: 'Admin key, or a personal key with Organization scope',
+    guidance: 'Accepts an Admin API key (sk-ant-admin01-), or a personal or service-account key that is NOT scoped to a workspace. Workspace-scoped keys are rejected, and the Admin API is unavailable to individual accounts. Reads API token usage and cost, not Claude Pro/Max allowance. Reporting endpoints are not billed per call.',
   },
   {
     id: 'google',
@@ -128,9 +131,9 @@ export function ProvidersSettingsCard({ service = createRuntimeProviderCredentia
         its last characters are displayed so you can recognise it.
       </p>
       <p className="providers-card__caveat">
-        These connectors read <strong>organization API usage and cost</strong>. No provider offers an
-        API for subscription allowance (ChatGPT/Codex, Claude Pro/Max, Gemini app), so those
-        figures still come from manual entry.
+        These connectors read <strong>organization API usage and cost</strong> — not subscription
+        allowance. No provider offers a REST API for allowance; Claude Pro/Max and Gemini come from
+        manual entry, and ChatGPT/Codex is available locally through the Codex CLI.
       </p>
 
       <div className="providers-card__list">
