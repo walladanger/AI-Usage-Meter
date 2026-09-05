@@ -5,6 +5,16 @@ import { createRuntimeDiagnostics, renderStartupFailure, type DiagnosticEntry, t
 import { isTauriRuntime } from './runtime/tauriRuntime';
 import './styles/index.css';
 
+// Mark external feature windows before CSS min-width rules are evaluated.
+// Checked synchronously using both the initialization-script injection and
+// the query-param approach (same as the tray panel) so either mechanism works.
+(function markExternalWindow() {
+  const injected = (window as unknown as Record<string, unknown>).__AI_USAGE_METER_EXTERNAL_FEATURE__;
+  const params = new URLSearchParams(window.location.search);
+  const isExternal = typeof injected === 'string' || params.get('window') === 'external';
+  if (isExternal) document.documentElement.classList.add('ai-external-window');
+}());
+
 const host = document.getElementById('root');
 
 function browserConsolePort(): DiagnosticPort {

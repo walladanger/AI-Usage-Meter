@@ -150,8 +150,12 @@ fn validate_external_request(request: &ExternalWindowRequest) -> CommandResult<(
     Ok(())
 }
 
-fn external_feature_url() -> PathBuf {
-    "index.html".into()
+fn external_feature_url(feature_id: &str) -> PathBuf {
+    // Include the feature ID as a query param so window.location.search
+    // provides the same routing signal as the tray-panel config window.
+    // The initialization script also sets window.__AI_USAGE_METER_EXTERNAL_FEATURE__
+    // as belt-and-suspenders; selectExternalFeature uses whichever fires first.
+    format!("index.html?window=external&feature={feature_id}").into()
 }
 
 fn external_feature_init_script(feature_id: &str) -> String {
@@ -180,7 +184,7 @@ fn open_external_feature_window(
         "INFO",
         &format!("External window requested; feature={}", request.feature_id),
     );
-    let url = external_feature_url();
+    let url = external_feature_url(&request.feature_id);
     let initialization_script = external_feature_init_script(&request.feature_id);
     let closed_app = app.clone();
     let closed_label = request.label.clone();
@@ -433,7 +437,20 @@ mod tests {
 
     #[test]
     fn external_feature_windows_use_the_packaged_app_entry_document() {
-        assert_eq!(external_feature_url().to_string_lossy(), "index.html");
+        let url = external_feature_url("usage-trend");
+        let url_str = url.to_string_lossy();
+        assert!(
+            url_str.starts_with("index.html"),
+            "must load bundled index.html; got {url_str}"
+        );
+        assert!(
+            url_str.contains("window=external"),
+            "must include routing query param; got {url_str}"
+        );
+        assert!(
+            url_str.contains("feature=usage-trend"),
+            "must include feature ID; got {url_str}"
+        );
         let script = external_feature_init_script("usage-trend");
         assert!(script.contains("usage-trend"));
         assert!(script.contains("writable: false"));

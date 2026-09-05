@@ -12,10 +12,16 @@
 html,
 body,
 #root {
-  min-width: 960px;
-  min-height: 640px;
   height: 100%;
   margin: 0;
+}
+
+/* Main window only — external pop-outs and the tray panel have their own bounds. */
+html:not(.ai-external-window),
+html:not(.ai-external-window) body,
+html:not(.ai-external-window) #root {
+  min-width: 960px;
+  min-height: 640px;
 }
 
 body {
