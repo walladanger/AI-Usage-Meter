@@ -278,17 +278,21 @@ if it is tens of MB again, a save loop has regressed.
 
 
 
+
+
 ---
 
-## Installer Delivery (0.1.8)
+## Installer Delivery (0.1.9)
 
-- **File:** `AI Usage Meter_0.1.8_x64-setup.exe`
-- **Size:** 4,569,026 bytes
-- **SHA-256:** `4032147FE663DD87990BECCD299228D452C803E2770030C992EF7F9EC6BF86C4`
-- **Built:** 2026-09-05 16:31 from `5dd5627` (pushed to origin/main)
-- **Path:** `C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.8\release\bundle\nsis\`
+- **File:** `AI Usage Meter_0.1.9_x64-setup.exe`
+- **Size:** 4,569,992 bytes
+- **SHA-256:** `B074168827CB03D900E65BF6BFEA2DA527C4F2C3B13C964C22F4807CE8F1D715`
+- **Built:** 2026-09-05 17:04 from `a5a4557` (pushed to origin/main)
+- **Path:** `C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.9\release\bundle\nsis\`
 
-Supersedes 0.1.7, whose Anthropic cost figures were 100x too high.
+Supersedes 0.1.8. Only change is the Providers panel wording: the Anthropic
+personal-key/organization-scope requirement now has its own highlighted block naming the
+Console columns to check. Connector logic is identical to 0.1.8.
 
 **Not yet installed or exercised by a human, and no connector has seen a real key.**
 
@@ -299,7 +303,8 @@ Supersedes 0.1.7, whose Anthropic cost figures were 100x too high.
    moves into it; it is semi-transparent.
 3. `%APPDATA%\com.aiusagemeter.desktop\logs\` stays small. Tens of MB means the save loop
    has regressed.
-4. Settings > Providers accepts an admin key and reports "Configured".
+4. Settings > Providers shows the Anthropic requirement block, accepts a Personal key with
+   Organization scope, and reports "Configured".
 5. Sources page shows real token/cost figures after a refresh, or a clear error.
 
 See `docs/HANDOVER-0.1.8.md` for the full continuation brief and the Codex connector test.
