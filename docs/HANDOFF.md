@@ -1,6 +1,6 @@
 # AI Usage Meter — Project Handover
 
-**Version:** 0.1.8
+**Version:** 0.1.9
 **Date:** 2026-09-05
 **Repo:** https://github.com/walladanger/AI-Usage-Meter
 **Local path:** `C:\Users\Warwick\.codex\.chatgpt-projects\g-p-6a98b8cd6fa0819194212d5d3efb7f5c\AI-Usage-Meter-work`
@@ -10,7 +10,7 @@
 ## Continuation Prompt (copy-paste this to start the next session)
 
 > Continue AI Usage Meter and read `docs/HANDOFF.md` and `docs/provider-capability-matrix.md`
-> completely before doing anything else. Current version is 0.1.8.
+> completely before doing anything else. Current version is 0.1.9.
 >
 > 0.1.7 fixed the runaway settings-save loop that made 0.1.6 unusable, and added the first real
 > provider connectors (OpenAI + Anthropic organization usage/cost) with keys in Windows Credential
@@ -176,17 +176,17 @@ them; allowance still comes from manual entry. Full detail and citations in
 ```powershell
 npm test
 
-$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.8'
+$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.9'
 cargo test --manifest-path src-tauri/Cargo.toml
 
-$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.9'
+$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.10'
 npm run tauri:build -- --bundles nsis
 ```
 
 `CARGO_TARGET_DIR` must sit outside `.codex`: Windows Application Control blocks test
 executables in hidden folders.
 
-**Test counts (0.1.8):** 45 frontend files / 158 tests; 29 Rust tests.
+**Test counts (0.1.9):** 45 frontend files / 160 tests; 29 Rust tests.
 
 ---
 
@@ -194,7 +194,7 @@ executables in hidden folders.
 
 Four files must match: `package.json`, `package-lock.json` (top-level **and**
 `packages."".version`), `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`.
-Next release: **0.1.9**.
+Next release: **0.1.10**.
 
 ---
 

@@ -2,7 +2,7 @@
   "name": "ai-usage-meter",
   "description": "Local-first Windows utility for tracking AI subscription allowances and reset times.",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

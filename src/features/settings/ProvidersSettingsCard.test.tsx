@@ -13,11 +13,23 @@ function service(overrides: Partial<ProviderCredentialsService> = {}): ProviderC
   };
 }
 
-test('states that a non-workspace-scoped Anthropic key is acceptable', () => {
+test('spells out that the Anthropic key must be Personal with Organization scope', () => {
   render(<ProvidersSettingsCard service={service()} />);
 
-  // Anthropic accepts a personal Organization-scoped key, not only sk-ant-admin01-.
-  expect(screen.getByText(/NOT scoped to a workspace/)).toBeInTheDocument();
+  // The scope decides, not the prefix: a "Workspace (legacy)" key is rejected by the API
+  // however it is named, so the requirement must name the Console columns to check.
+  expect(screen.getByText(/Must be a Personal key whose Scope is Organization/)).toBeInTheDocument();
+  expect(screen.getByText(/NOT a workspace key/)).toBeInTheDocument();
+  expect(screen.getByText(/Workspace \(legacy\)/)).toBeInTheDocument();
+  expect(screen.getByText(/prefix does not matter/)).toBeInTheDocument();
+});
+
+test('the OpenAI card carries no personal-key requirement, only Anthropic', () => {
+  render(<ProvidersSettingsCard service={service()} />);
+
+  const openai = screen.getByLabelText('OpenAI').closest('section');
+  expect(openai).not.toBeNull();
+  expect(within(openai as HTMLElement).queryByText(/Must be a Personal key/)).toBeNull();
 });
 
 test('shows which providers are configured without revealing the key', async () => {

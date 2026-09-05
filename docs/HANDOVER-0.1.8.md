@@ -26,7 +26,7 @@
 | Chart pop-out / X button | Should now work — **needs physical acceptance** |
 | Tray hover panel | Implemented — **needs physical acceptance** |
 | OpenAI connector | Implemented — **never called with a real key** |
-| Anthropic connector | Implemented, cents bug fixed — **never called with a real key** |
+| Anthropic connector | Implemented, cents bug fixed — **never called with a real key**. Needs a Personal key with Organization scope; workspace keys are rejected. |
 | Gemini connector | **Not implemented.** Proven to have no usage endpoint. |
 | Codex allowance connector | **Not implemented, but the source is VERIFIED WORKING** — see §6. |
 | Dashboard display of API usage | **Not done** — `Dashboard.tsx` is frozen. Figures show on Sources. |
@@ -77,7 +77,7 @@ npm run tauri:build -- --bundles nsis
 
 **Four version files must match:** `package.json`, `package-lock.json` (top level **and**
 `packages."".version`), `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`.
-Next release: **0.1.9**.
+Current: **0.1.9**. Next release: **0.1.10**.
 
 Run `cargo fmt` before committing Rust or the format check fails.
 

@@ -16,6 +16,8 @@ interface ProviderDefinition {
   connector: 'available' | 'unavailable';
   keyLabel: string;
   guidance: string;
+  /** A hard constraint the user must satisfy, rendered prominently above the guidance. */
+  requirement?: string;
 }
 
 /**
@@ -38,8 +40,9 @@ const PROVIDERS: readonly ProviderDefinition[] = [
     id: 'anthropic',
     label: 'Anthropic',
     connector: 'available',
-    keyLabel: 'Admin key, or a personal key with Organization scope',
-    guidance: 'Accepts an Admin API key (sk-ant-admin01-), or a personal or service-account key that is NOT scoped to a workspace. Workspace-scoped keys are rejected, and the Admin API is unavailable to individual accounts. Reads API token usage and cost, not Claude Pro/Max allowance. Reporting endpoints are not billed per call.',
+    keyLabel: 'Personal key with Organization scope',
+    requirement: 'Must be a Personal key whose Scope is Organization — NOT a workspace key. In Claude Console › Settings › API keys, check the Type and Scope columns: a key marked "Workspace (legacy)" will be rejected by the API, whatever its name. An Admin key (sk-ant-admin01-) also works. The prefix does not matter; the scope does.',
+    guidance: 'The Admin API is unavailable to individual accounts — your account must be an organization. Reads API token usage and cost, never Claude Pro/Max allowance. These reporting endpoints are not billed per call; Anthropic bills for inference tokens only.',
   },
   {
     id: 'google',
@@ -153,6 +156,9 @@ export function ProvidersSettingsCard({ service = createRuntimeProviderCredentia
                       : 'Not configured'}
                 </span>
               </header>
+              {provider.requirement ? (
+                <p className="providers-card__requirement">{provider.requirement}</p>
+              ) : null}
               <p className="providers-card__guidance">{provider.guidance}</p>
 
               {unavailable ? null : (
@@ -164,7 +170,7 @@ export function ProvidersSettingsCard({ service = createRuntimeProviderCredentia
                       type="password"
                       autoComplete="off"
                       spellCheck={false}
-                      placeholder={status?.configured ? 'Enter a new key to replace the stored one' : 'Paste the admin key'}
+                      placeholder={status?.configured ? 'Enter a new key to replace the stored one' : 'Paste the key'}
                       value={drafts[provider.id] ?? ''}
                       onChange={(event) => {
                         const { value } = event.target;
