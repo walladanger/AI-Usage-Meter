@@ -38,6 +38,19 @@ export class UsageController {
 
   getAll = (): ProviderUsageState[] => this.snapshot;
 
+  /**
+   * Installs the connectors for providers that have a credential configured.
+   * Credentials are read asynchronously at startup, so the adapter list is not known when
+   * the controller is constructed. Replaces the whole set so removing a key removes its
+   * connector too.
+   */
+  setAdapters = (adapters: PersonalUsageAdapter[]): void => {
+    this.adapters.clear();
+    for (const adapter of adapters) this.adapters.set(adapter.providerId, adapter);
+  };
+
+  hasAdapters = (): boolean => this.adapters.size > 0;
+
   subscribe = (listener: UsageListener): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -113,6 +126,7 @@ interface UsageContextValue {
   refreshProvider(providerId: ProviderId): Promise<boolean>;
   refreshAll(): Promise<RefreshSummary>;
   setManualObservation(observation: UsageObservation): Promise<void>;
+  setAdapters(adapters: PersonalUsageAdapter[]): void;
 }
 
 const UsageContext = createContext<UsageContextValue | null>(null);
@@ -126,12 +140,14 @@ export function UsageProvider({ children, controller }: UsageProviderProps) {
   const refreshProvider = useCallback((providerId: ProviderId) => controller.refreshProvider(providerId), [controller]);
   const refreshAll = useCallback(() => controller.refreshAll(), [controller]);
   const setManualObservation = useCallback((observation: UsageObservation) => controller.setManualObservation(observation), [controller]);
+  const setAdapters = useCallback((adapters: PersonalUsageAdapter[]) => controller.setAdapters(adapters), [controller]);
   const value = useMemo<UsageContextValue>(() => ({
     providers,
     refreshProvider,
     refreshAll,
     setManualObservation,
-  }), [providers, refreshAll, refreshProvider, setManualObservation]);
+    setAdapters,
+  }), [providers, refreshAll, refreshProvider, setAdapters, setManualObservation]);
 
   return <UsageContext.Provider value={value}>{children}</UsageContext.Provider>;
 }

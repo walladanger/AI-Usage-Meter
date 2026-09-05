@@ -1,0 +1,70 @@
+/* Providers card. Matches the smoky utility surface used by featurePages.css. */
+
+.providers-card__caveat {
+  margin: 0 0 0.9rem !important;
+  padding: 0.6rem 0.7rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  background: #10171c;
+  border: 1px solid #303a43;
+  border-left: 2px solid #6f8391;
+  border-radius: 0.35rem;
+}
+
+.providers-card__caveat strong { color: var(--text-primary); font-weight: 600; }
+
+.providers-card__list { display: grid; gap: 0; }
+
+.providers-card__item {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid #303a43;
+}
+
+.providers-card__item:last-child { padding-bottom: 0; border-bottom: 0; }
+
+.providers-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.providers-card__header strong { font-size: 0.82rem; }
+
+.providers-card__state {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.providers-card__state[data-configured='yes'] { color: #8fd0a4; }
+
+.providers-card__guidance {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+/* Key field, save, and the optional remove button. */
+.providers-card__row {
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  margin-top: 0.25rem;
+}
+
+.providers-card__field { min-width: 0; }
+
+/* The key input is a password field; keep it monospace so a pasted key is easy to compare. */
+.providers-card__field input {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .providers-card__row { grid-template-columns: minmax(0, 1fr); }
+}

@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+mod credentials;
 mod diagnostics;
 mod loopback;
+mod providers;
 mod startup;
 mod tray;
 
@@ -55,6 +57,13 @@ impl NativeCommandError {
         Self {
             code: "loopback-unavailable",
             message: message.into(),
+        }
+    }
+
+    fn credential(error: credentials::CredentialError) -> Self {
+        Self {
+            code: error.code(),
+            message: error.message(),
         }
     }
 }
@@ -258,6 +267,98 @@ fn close_external_feature_window(app: AppHandle, label: String) -> CommandResult
         .map_err(|error| NativeCommandError::native(error.to_string()))
 }
 
+fn parse_provider(provider_id: &str) -> CommandResult<credentials::ProviderId> {
+    credentials::ProviderId::parse(provider_id)
+        .ok_or_else(|| NativeCommandError::invalid("The requested provider is not supported."))
+}
+
+/// Stores an API key in the Windows Credential Manager.
+/// The `secret` argument is never logged and never returned.
+#[tauri::command]
+async fn store_provider_credential(
+    app: AppHandle,
+    provider_id: String,
+    secret: String,
+) -> CommandResult<credentials::CredentialStatus> {
+    let provider = parse_provider(&provider_id)?;
+    let status =
+        tauri::async_runtime::spawn_blocking(move || credentials::store(provider, &secret))
+            .await
+            .map_err(|_| {
+                NativeCommandError::persistence("The credential operation did not complete.")
+            })?
+            .map_err(NativeCommandError::credential)?;
+    // Logs the provider only. Never the key, never the masked hint.
+    diagnostics::record_native(
+        &app,
+        "INFO",
+        &format!("Provider credential stored; provider={provider_id}"),
+    );
+    Ok(status)
+}
+
+#[tauri::command]
+async fn delete_provider_credential(
+    app: AppHandle,
+    provider_id: String,
+) -> CommandResult<credentials::CredentialStatus> {
+    let provider = parse_provider(&provider_id)?;
+    let status = tauri::async_runtime::spawn_blocking(move || credentials::delete(provider))
+        .await
+        .map_err(|_| NativeCommandError::persistence("The credential operation did not complete."))?
+        .map_err(NativeCommandError::credential)?;
+    diagnostics::record_native(
+        &app,
+        "INFO",
+        &format!("Provider credential removed; provider={provider_id}"),
+    );
+    Ok(status)
+}
+
+#[tauri::command]
+async fn provider_credential_status(
+    provider_id: String,
+) -> CommandResult<credentials::CredentialStatus> {
+    let provider = parse_provider(&provider_id)?;
+    tauri::async_runtime::spawn_blocking(move || credentials::status(provider))
+        .await
+        .map_err(|_| NativeCommandError::persistence("The credential operation did not complete."))?
+        .map_err(NativeCommandError::credential)
+}
+
+/// Calls the provider's usage and cost endpoints and returns aggregate numbers only.
+#[tauri::command]
+async fn fetch_provider_usage(
+    app: AppHandle,
+    provider_id: String,
+) -> Result<providers::ProviderUsageSnapshot, providers::ProviderFetchError> {
+    let provider = credentials::ProviderId::parse(&provider_id).ok_or_else(|| {
+        providers::ProviderFetchError {
+            state: "error",
+            message: "The requested provider is not supported.".to_string(),
+        }
+    })?;
+    diagnostics::record_native(
+        &app,
+        "INFO",
+        &format!("Provider usage refresh started; provider={provider_id}"),
+    );
+    let result = providers::fetch(provider).await;
+    // Records the outcome state only. No response body, no totals, no key material.
+    diagnostics::record_native(
+        &app,
+        if result.is_ok() { "INFO" } else { "WARN" },
+        &match &result {
+            Ok(_) => format!("Provider usage refresh completed; provider={provider_id}"),
+            Err(error) => format!(
+                "Provider usage refresh failed; provider={provider_id}; state={}",
+                error.state
+            ),
+        },
+    );
+    result
+}
+
 fn app_settings_path(app: &AppHandle) -> CommandResult<PathBuf> {
     app.path()
         .app_data_dir()
@@ -331,6 +432,13 @@ fn show_main_window(app: AppHandle, route: Option<String>) -> CommandResult<()> 
     tray::show_main(&app, route.as_deref());
     diagnostics::record_native(&app, "INFO", "Main window requested from native command.");
     Ok(())
+}
+
+/// Cancels a pending hide so the panel survives the pointer travelling from the tray icon
+/// into the panel itself.
+#[tauri::command]
+fn keep_tray_panel_open() {
+    tray::cancel_scheduled_hide();
 }
 
 #[tauri::command]
@@ -424,8 +532,13 @@ pub fn run() {
             read_diagnostic_log,
             show_main_window,
             hide_tray_panel,
+            keep_tray_panel_open,
             request_usage_refresh,
             exit_application,
+            store_provider_credential,
+            delete_provider_credential,
+            provider_credential_status,
+            fetch_provider_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AI Usage Meter");

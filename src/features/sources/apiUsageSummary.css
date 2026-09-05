@@ -1,0 +1,49 @@
+/* API usage summary. Matches the smoky utility surface used by featurePages.css. */
+
+.api-usage__list { display: grid; gap: 0; }
+
+.api-usage__item {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #303a43;
+}
+
+.api-usage__item:last-child { padding-bottom: 0; border-bottom: 0; }
+
+.api-usage__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.api-usage__header strong { font-size: 0.82rem; }
+.api-usage__header span { color: var(--text-secondary); font-size: 0.68rem; }
+
+.api-usage__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.7rem;
+  background: #10171c;
+  border: 1px solid #2d3740;
+  border-radius: 0.35rem;
+}
+
+.api-usage__metrics div { display: grid; gap: 0.2rem; }
+.api-usage__metrics dt { color: var(--text-secondary); font-size: 0.63rem; }
+.api-usage__metrics dd {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.api-usage__source {
+  margin: 0 !important;
+  color: var(--text-secondary);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}

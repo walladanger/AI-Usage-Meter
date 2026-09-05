@@ -1,6 +1,6 @@
 [package]
 name = "ai-usage-meter"
-version = "0.1.6"
+version = "0.1.8"
 description = "Local-first Windows utility for tracking AI subscription allowances and reset times"
 authors = ["AI Usage Meter"]
 edition = "2021"
@@ -22,6 +22,12 @@ time = { version = "0.3", features = ["formatting", "local-offset", "macros", "p
 
 tiny_http = "0.12"
 getrandom = "0.2"
+
+# Provider connectors (0.1.7).
+# keyring: Windows Credential Manager. API keys never touch settings.json, SQLite, or logs.
+# reqwest: provider HTTPS calls stay in Rust so response bodies never reach the frontend.
+keyring = { version = "3", features = ["windows-native"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset", "http2"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

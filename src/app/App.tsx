@@ -23,12 +23,15 @@ import { useSettings } from '../settings/settingsStore';
 import { isTauriRuntime } from '../runtime/tauriRuntime';
 import type { ShellRoute } from '../navigation/navigationTypes';
 import { recordAppDiagnostic } from '../diagnostics/appDiagnostics';
+import { API_CONNECTOR_PROVIDERS, createApiAdapters } from '../usage/apiProviderAdapter';
+import { createRuntimeProviderCredentialsService } from '../settings/providerCredentialsService';
+import type { ProviderId } from '../usage/usageTypes';
 
 const defaultUsageController = new UsageController(fixtureProviders, []);
 
 function AppContent() {
   const { open, openExternal } = useWindowManager();
-  const { providers, refreshAll, setManualObservation } = useUsage();
+  const { providers, refreshAll, setManualObservation, setAdapters } = useUsage();
   const { settings, update } = useSettings();
   const [setupOpen, setSetupOpen] = useState(false);
   const [requestedRoute, setRequestedRoute] = useState<ShellRoute>('overview');
@@ -50,6 +53,40 @@ function AppContent() {
       .then((cleanup) => { unlisten = cleanup; if (!active) cleanup(); });
     return () => { active = false; unlisten?.(); };
   }, [externalFeature, refreshAll]);
+
+  // Install a connector for each provider that has a key in the Windows Credential Manager.
+  // Runs once: `setAdapters` and `refreshAll` are stable for a given controller, so this
+  // cannot become a render loop.
+  useEffect(() => {
+    if (!isTauriRuntime() || externalFeature) return undefined;
+    let active = true;
+    void (async () => {
+      const credentials = createRuntimeProviderCredentialsService();
+      const configured: ProviderId[] = [];
+      for (const providerId of API_CONNECTOR_PROVIDERS) {
+        try {
+          const status = await credentials.status(providerId);
+          if (status.configured) configured.push(providerId);
+        } catch {
+          // A provider whose status cannot be read stays on its existing source.
+        }
+      }
+      if (!active || configured.length === 0) return;
+      setAdapters(createApiAdapters(configured));
+      void recordAppDiagnostic('info', `Provider connectors installed; count=${configured.length}.`);
+      void refreshAll();
+    })();
+    return () => { active = false; };
+  }, [externalFeature, refreshAll, setAdapters]);
+
+  // Scheduled refresh. `refreshMinutes` of 0 means manual only.
+  useEffect(() => {
+    if (!isTauriRuntime() || externalFeature) return undefined;
+    const minutes = settings.usage.refreshMinutes;
+    if (!minutes || minutes <= 0) return undefined;
+    const timer = setInterval(() => { void refreshAll(); }, minutes * 60_000);
+    return () => clearInterval(timer);
+  }, [externalFeature, refreshAll, settings.usage.refreshMinutes]);
 
   if (externalFeature) return <ExternalWindowRoute feature={externalFeature} />;
 
