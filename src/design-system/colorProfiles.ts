@@ -72,17 +72,20 @@ export function withAlpha(color: string, alphaHex: string): string {
   const cleanAlpha = String(alphaHex).replace(/^#/, '').trim();
   const normalized = String(color).trim();
 
-  // If we can't parse the alpha as a hex byte, leave the input unchanged
+  // Parse as hex byte (0..255)
   const alphaInt = parseInt(cleanAlpha, 16);
   if (Number.isNaN(alphaInt) || alphaInt < 0 || alphaInt > 255) {
     return color;
   }
 
+  // Normalize hex alpha to two lowercase hex digits
+  const normalizedHex = alphaInt.toString(16).padStart(2, '0').toLowerCase();
+
   // OKLCH uses a space-slash-space alpha syntax: "oklch(... / 0.502)"
   if (normalized.toLowerCase().startsWith('oklch(')) {
     const alpha = (alphaInt / 255).toFixed(3);
 
-    // If an alpha already exists, replace it. Otherwise append it before the closing paren.
+    // Replace existing alpha if present, otherwise append
     if (/\/\s*[\d.]+\)/.test(normalized)) {
       return normalized.replace(/\/\s*[\d.]+\)/, `/ ${alpha})`);
     }
@@ -90,8 +93,8 @@ export function withAlpha(color: string, alphaHex: string): string {
     return normalized.replace(/\)$/, ` / ${alpha})`);
   }
 
-  // Fallback: append the clean hex alpha to the color (e.g., "#rrggbb" + "80" -> "#rrggbb80")
-  return `${color}${cleanAlpha}`;
+  // Fallback for hex-style colors: append normalized two-digit hex alpha
+  return `${color}${normalizedHex}`;
 }
 
 export function buildAccentTokens(selection: ColorProfileSelection): AccentTokens {
