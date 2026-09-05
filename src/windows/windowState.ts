@@ -119,12 +119,32 @@ export function useNativeWindowStateLifecycle(windowId: string, bridge?: NativeW
   const bridgeRef = useRef<NativeWindowStateBridge | null>(null);
   if (!bridgeRef.current) bridgeRef.current = bridge ?? getNativeWindowStateBridge();
   const nativeBridge = bridgeRef.current;
+
+  // `save` writes settings, which replaces the settings object, which changes the
+  // identity of both `load` and `save`. Depending on them directly would re-run the
+  // teardown effect, whose cleanup calls persist() -> save() -> new identities, and
+  // so on without end. 0.1.6 shipped that loop: it wrote settings.json ~148x/second,
+  // starving the main thread so new webviews (chart pop-out, tray panel) never
+  // painted. Read the callbacks through refs so only `windowId` can re-arm the effect.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  const restoredRef = useRef(false);
   useEffect(() => {
-    void nativeBridge.restore(load()).catch(() => undefined);
+    // Settings load asynchronously, so the first render has nothing to restore.
+    // Re-check until a persisted state exists, then latch so this never runs again.
+    if (restoredRef.current) return;
+    const persisted = load();
+    if (!persisted) return;
+    restoredRef.current = true;
+    void nativeBridge.restore(persisted).catch(() => undefined);
+  }, [load, nativeBridge]);
+
+  useEffect(() => {
     const persist = () => {
-      void nativeBridge.capture().then((state) => state ? save(state) : undefined).catch(() => undefined);
+      void nativeBridge.capture().then((state) => state ? saveRef.current(state) : undefined).catch(() => undefined);
     };
     window.addEventListener('pagehide', persist);
     return () => { window.removeEventListener('pagehide', persist); persist(); };
-  }, [load, nativeBridge, save]);
+  }, [nativeBridge, windowId]);
 }
