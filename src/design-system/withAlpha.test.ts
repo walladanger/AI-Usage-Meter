@@ -23,3 +23,15 @@ test('invalid alpha returns original color', () => {
   const color = '#112233';
   expect(withAlpha(color, 'zz')).toBe('#112233');
 });
+
+// Additional edge cases
+
+test('single digit hex alpha is normalized to two digits', () => {
+  expect(withAlpha('#112233', 'f')).toBe('#1122330f');
+  expect(withAlpha('#112233', 'F')).toBe('#1122330f');
+});
+
+test('00 becomes 00 and ff becomes ff', () => {
+  expect(withAlpha('#112233', '00')).toBe('#11223300');
+  expect(withAlpha('#112233', 'ff')).toBe('#112233ff');
+});
