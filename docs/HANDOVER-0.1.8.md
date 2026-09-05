@@ -1,6 +1,6 @@
 # AI Usage Meter — Handover 0.1.8
 
-**Date:** 2026-09-05 · **Commit:** `5dd5627` on `main`, pushed to origin
+**Date:** 2026-09-05 · **Head:** `b7fdb8f` on `main` (pushed) · **Installer built from:** `5dd5627`
 **Repo:** https://github.com/walladanger/AI-Usage-Meter
 **Local:** `C:\Users\Warwick\.codex\.chatgpt-projects\g-p-6a98b8cd6fa0819194212d5d3efb7f5c\AI-Usage-Meter-work`
 
@@ -8,7 +8,7 @@
 
 ## Continuation prompt (paste this to start the next session)
 
-> Continue AI Usage Meter from `main` (`5dd5627`). Read `docs/HANDOVER-0.1.8.md` and
+> Continue AI Usage Meter from `main` (`b7fdb8f`). Read `docs/HANDOVER-0.1.8.md` and
 > `docs/provider-capability-matrix.md` completely before doing anything.
 >
 > Current version is 0.1.8. The **Codex app-server test in §6 has been run and PASSED** —
@@ -31,7 +31,7 @@
 | Codex allowance connector | **Not implemented, but the source is VERIFIED WORKING** — see §6. |
 | Dashboard display of API usage | **Not done** — `Dashboard.tsx` is frozen. Figures show on Sources. |
 
-**Tests: 158 frontend (45 files), 29 Rust.** All passing at `5dd5627`.
+**Tests: 158 frontend (45 files), 29 Rust.** All passing.
 
 ### Installer
 
