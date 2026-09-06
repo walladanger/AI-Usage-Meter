@@ -56,6 +56,17 @@ test('the adapter forwards the provider id and returns a normalized observation'
   expect(observation.apiUsage?.requests).toBe(27);
 });
 
+test('the provider own error text is appended so a failure is diagnosable', async () => {
+  const command = vi.fn().mockRejectedValue({
+    state: 'authentication_required',
+    message: 'The key is valid but not permitted to read organization usage.',
+    detail: 'invalid x-api-key',
+  });
+
+  await expect(new ApiUsageAdapter('anthropic', command).fetch())
+    .rejects.toThrow(/Provider said: invalid x-api-key/);
+});
+
 test('a native connector error surfaces its display-safe message', async () => {
   const command = vi.fn().mockRejectedValue({
     state: 'authentication_required',

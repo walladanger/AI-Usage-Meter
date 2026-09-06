@@ -370,6 +370,7 @@ async fn fetch_provider_usage(
         providers::ProviderFetchError {
             state: "error",
             message: "The requested provider is not supported.".to_string(),
+            detail: None,
         }
     })?;
     diagnostics::record_native(

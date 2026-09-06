@@ -1,6 +1,6 @@
 # AI Usage Meter — Project Handover
 
-**Version:** 0.1.10
+**Version:** 0.1.11
 **Date:** 2026-09-05
 **Repo:** https://github.com/walladanger/AI-Usage-Meter
 **Local path:** `C:\Users\Warwick\.codex\.chatgpt-projects\g-p-6a98b8cd6fa0819194212d5d3efb7f5c\AI-Usage-Meter-work`
@@ -10,7 +10,7 @@
 ## Continuation Prompt (copy-paste this to start the next session)
 
 > Continue AI Usage Meter and read `docs/HANDOFF.md` and `docs/provider-capability-matrix.md`
-> completely before doing anything else. Current version is 0.1.10.
+> completely before doing anything else. Current version is 0.1.11.
 >
 > 0.1.7 fixed the runaway settings-save loop that made 0.1.6 unusable, and added the first real
 > provider connectors (OpenAI + Anthropic organization usage/cost) with keys in Windows Credential
@@ -38,6 +38,40 @@
    history, provider HTML, allowance values, or reset timestamps.
 4. **Logs remain local** unless the user explicitly copies/uploads them.
 5. **Loopback session token:** fresh per launch; never written to disk.
+
+---
+
+## What 0.1.11 changed — diagnosability
+
+Field evidence from the 0.1.10 install exposed three faults, all about the app telling the
+truth about itself.
+
+### Gemini was showing preview data as CONNECTED
+
+The Refresh page rendered `provider.status` without checking `isFixture`, so Gemini — which
+has no connector at all — displayed a green CONNECTED badge next to a fixture timestamp.
+That breaks the project's own rule against presenting invented values as real ones. It now
+reads "Preview" with "Preview data — no connector configured". Sources already did this
+correctly; Refresh did not.
+
+### Failure reasons were computed and then never shown
+
+`UsageController` records `lastError`, and the native layer produces a specific message per
+HTTP status, but **no page rendered either**. A failing provider showed a red badge and
+nothing else, which is why the first Anthropic failure needed a log dig to diagnose. Refresh
+and Sources now render the reason inline.
+
+### 401 and 403 were collapsed into one message
+
+They mean different things and imply different fixes: 401 is a key that was not accepted,
+403 is a valid key without the required scope — typically a workspace-scoped Anthropic key.
+Telling a 403 user to replace their key sends them to fix the wrong thing.
+
+The provider's own `error.message` is now appended to the displayed reason. Only that field
+is taken, capped at 300 characters, and it is still never written to the diagnostic log.
+
+**Lesson worth keeping:** a careful diagnostic path is worth nothing if the last mile to the
+user is not connected. The messages existed for a full release before anyone could read them.
 
 ---
 
@@ -237,7 +271,7 @@ npm run tauri:build -- --bundles nsis
 `CARGO_TARGET_DIR` must sit outside `.codex`: Windows Application Control blocks test
 executables in hidden folders.
 
-**Test counts (0.1.10):** 47 frontend files / 179 tests; 36 Rust tests (+1 ignored live test).
+**Test counts (0.1.11):** 47 frontend files / 180 tests; 39 Rust tests (+1 ignored live test).
 
 ---
 
@@ -245,7 +279,7 @@ executables in hidden folders.
 
 Four files must match: `package.json`, `package-lock.json` (top-level **and**
 `packages."".version`), `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`.
-Next release: **0.1.11**.
+Next release: **0.1.12**.
 
 ---
 
@@ -333,33 +367,26 @@ if it is tens of MB again, a save loop has regressed.
 
 
 
+
+
 ---
 
-## Installer Delivery (0.1.10)
+## Installer Delivery (0.1.11)
 
-- **File:** `AI Usage Meter_0.1.10_x64-setup.exe`
-- **Size:** 4,589,730 bytes
-- **SHA-256:** `210C7A99400E5DC009DB0004961E87C55B41EAEFAF4DA79A4E406160F56228A9`
-- **Built:** 2026-09-06 08:53 from `425761e` (pushed to origin/main)
+- **File:** `AI Usage Meter_0.1.11_x64-setup.exe`
+- **Size:** 4,712,685 bytes
+- **SHA-256:** `DFC18B6ADF19F20BB58FAB3068CFD81272F6D0416A5BB0956417455D874C8C09`
+- **Built:** 2026-09-06 13:43
 - **Path:** `C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.10\release\bundle\nsis\`
+  (built into the 0.1.10 target directory; the filename carries the real version)
 
-First build containing the Codex allowance connector.
+### Confirmed working in the field as of 0.1.10
 
-### Acceptance checklist
+- **Codex allowance connector** — CONNECTED with a live timestamp in the running app.
+- **Settings-save loop fix** — the daily log is **1,605 bytes**. It was 42 MB in 0.1.6.
 
-1. **Dashboard shows a live percentage and countdown for ChatGPT/Codex.** This is the point
-   of the release: the frozen dashboard was never changed, so this working proves the
-   adapter contract holds. Cross-check the figure against `/status` in the Codex TUI.
-2. **Sources shows the ChatGPT/Codex allowance card** with both windows, the plan, and a
-   notice if a rate-limit reset is available while blocked.
-3. Chart pop-out renders content; its X closes it.
-4. Hovering the tray icon shows the panel near the icon; it stays open when the pointer
-   moves into it; it is semi-transparent.
-5. `%APPDATA%\com.aiusagemeter.desktop\logs\` stays small. Tens of MB means the save loop
-   has regressed.
-6. **No console window flashes** during a refresh. If one does, `CREATE_NO_WINDOW` is not
-   taking effect.
-7. Settings > Providers accepts an Anthropic Personal key with Organization scope and
-   reports "Configured"; Sources then shows token/cost figures, or a clear error.
+### Still unverified
 
-Items 1, 2 and 6 are new in 0.1.10. The API connectors remain unverified against a real key.
+- OpenAI and Anthropic API connectors. Anthropic returned `authentication_required` on the
+  first real attempt; 0.1.11 exists to make that failure legible.
+- Chart pop-out, tray hover panel: implemented, never physically exercised.

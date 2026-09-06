@@ -46,8 +46,15 @@ function isSnapshot(value: unknown): value is ProviderUsageSnapshot {
  */
 function describe(error: unknown): string {
   if (error && typeof error === 'object') {
-    const { message } = error as { message?: unknown };
-    if (typeof message === 'string' && message.length > 0) return message;
+    const { message, detail } = error as { message?: unknown; detail?: unknown };
+    if (typeof message === 'string' && message.length > 0) {
+      // `detail` is the provider's own error text, already capped and stripped of
+      // everything but `error.message` by the native side. It usually names the real
+      // problem, so it is worth showing alongside our own guidance.
+      return typeof detail === 'string' && detail.length > 0
+        ? `${message} Provider said: ${detail}`
+        : message;
+    }
   }
   return 'The provider refresh failed.';
 }

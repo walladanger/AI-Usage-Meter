@@ -73,3 +73,12 @@
   .setup-flow__choices--three { grid-template-columns: 1fr; }
   .setup-flow__summary { grid-template-columns: 1fr; }
 }
+
+/* Why a provider failed. Without this the user sees only a red badge. */
+.source-card__error {
+  grid-column: 1 / -1;
+  margin-top: 0.35rem;
+  color: #ff9c8e;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}

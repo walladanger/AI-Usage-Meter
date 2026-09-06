@@ -70,6 +70,10 @@ pub struct ProviderUsageSnapshot {
 pub struct ProviderFetchError {
     pub state: &'static str,
     pub message: String,
+    /// The provider's own error text, when it supplied one. Shown in the UI to make a
+    /// failure diagnosable. Only the `error.message` field is taken, never the whole body,
+    /// and it is never written to the diagnostic log.
+    pub detail: Option<String>,
 }
 
 impl ProviderFetchError {
@@ -77,17 +81,30 @@ impl ProviderFetchError {
         Self {
             state,
             message: message.into(),
+            detail: None,
         }
     }
 
-    /// Maps an HTTP status to a state and a fixed message. The response body is never read
-    /// into the message: it can echo request metadata.
+    fn with_detail(mut self, detail: Option<String>) -> Self {
+        self.detail = detail;
+        self
+    }
+
+    /// Maps an HTTP status to a state and an actionable message.
+    ///
+    /// 401 and 403 are deliberately distinct: 401 means the key itself was not
+    /// accepted, while 403 means a valid key lacks the required scope - usually a
+    /// workspace-scoped key, which the usage endpoints reject. Collapsing them
+    /// sends users to fix the wrong thing.
     fn from_status(status: u16) -> Self {
         match status {
-            401 | 403 => Self::new(
+            401 => Self::new(
                 "authentication_required",
-                "The provider rejected this key. Organization usage endpoints require an admin key, \
-                 not a standard API key.",
+                "The provider did not accept this key. Check it was copied in full and has not been revoked.",
+            ),
+            403 => Self::new(
+                "authentication_required",
+                "The key is valid but not permitted to read organization usage. For Anthropic this usually means a workspace-scoped key: use a Personal key whose Scope is Organization, or an Admin key.",
             ),
             404 => Self::new(
                 "page_unavailable",
@@ -209,6 +226,22 @@ fn now_rfc3339() -> String {
 // HTTP
 // ---------------------------------------------------------------------------
 
+/// Extracts only the provider's `error.message`, capped. Both OpenAI and Anthropic use this
+/// shape. The rest of the body is discarded: it can carry request metadata.
+fn error_detail(body: &str) -> Option<String> {
+    let parsed: Value = serde_json::from_str(body).ok()?;
+    let message = parsed
+        .get("error")
+        .and_then(|error| error.get("message"))
+        .and_then(Value::as_str)
+        .or_else(|| parsed.get("message").and_then(Value::as_str))?;
+    let trimmed = message.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(trimmed.chars().take(300).collect())
+}
+
 fn client() -> Result<reqwest::Client, ProviderFetchError> {
     reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
@@ -235,7 +268,9 @@ async fn get_json(request: reqwest::RequestBuilder) -> Result<Value, ProviderFet
 
     let status = response.status();
     if !status.is_success() {
-        return Err(ProviderFetchError::from_status(status.as_u16()));
+        // Read the body only to lift `error.message`; it is never logged.
+        let detail = response.text().await.ok().as_deref().and_then(error_detail);
+        return Err(ProviderFetchError::from_status(status.as_u16()).with_detail(detail));
     }
 
     response.json::<Value>().await.map_err(|_| {
@@ -555,6 +590,44 @@ mod tests {
         );
         assert_eq!(buckets(&json!([{ "a": 1 }])).len(), 1);
         assert_eq!(buckets(&json!({ "unexpected": true })).len(), 0);
+    }
+
+    #[test]
+    fn unauthorized_and_forbidden_give_different_advice() {
+        // 401: the key was not accepted at all.
+        let unauthorized = ProviderFetchError::from_status(401);
+        assert!(unauthorized.message.contains("did not accept this key"));
+
+        // 403: a valid key without the right scope. Telling the user to replace the key
+        // would be the wrong fix; they need to change its scope.
+        let forbidden = ProviderFetchError::from_status(403);
+        assert!(forbidden.message.contains("workspace-scoped"));
+        assert!(forbidden.message.contains("Organization"));
+    }
+
+    #[test]
+    fn error_detail_takes_only_the_message_field() {
+        let anthropic = r#"{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}"#;
+        assert_eq!(
+            error_detail(anthropic).as_deref(),
+            Some("invalid x-api-key")
+        );
+
+        let openai =
+            r#"{"error":{"message":"Incorrect API key provided","type":"invalid_request_error"}}"#;
+        assert_eq!(
+            error_detail(openai).as_deref(),
+            Some("Incorrect API key provided")
+        );
+
+        assert_eq!(error_detail("not json"), None);
+        assert_eq!(error_detail(r#"{"error":{"message":"  "}}"#), None);
+    }
+
+    #[test]
+    fn error_detail_is_capped_so_a_large_body_cannot_flood_the_ui() {
+        let long = format!(r#"{{"error":{{"message":"{}"}}}}"#, "x".repeat(5000));
+        assert_eq!(error_detail(&long).expect("detail").chars().count(), 300);
     }
 
     #[test]
