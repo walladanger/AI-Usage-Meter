@@ -331,31 +331,35 @@ if it is tens of MB again, a save loop has regressed.
 
 
 
+
+
 ---
 
-## Installer Delivery (0.1.9)
+## Installer Delivery (0.1.10)
 
-- **File:** `AI Usage Meter_0.1.9_x64-setup.exe`
-- **Size:** 4,569,992 bytes
-- **SHA-256:** `B074168827CB03D900E65BF6BFEA2DA527C4F2C3B13C964C22F4807CE8F1D715`
-- **Built:** 2026-09-05 17:04 from `a5a4557` (pushed to origin/main)
-- **Path:** `C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.9\release\bundle\nsis\`
+- **File:** `AI Usage Meter_0.1.10_x64-setup.exe`
+- **Size:** 4,589,730 bytes
+- **SHA-256:** `210C7A99400E5DC009DB0004961E87C55B41EAEFAF4DA79A4E406160F56228A9`
+- **Built:** 2026-09-06 08:53 from `425761e` (pushed to origin/main)
+- **Path:** `C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.10\release\bundle\nsis\`
 
-Supersedes 0.1.8. Only change is the Providers panel wording: the Anthropic
-personal-key/organization-scope requirement now has its own highlighted block naming the
-Console columns to check. Connector logic is identical to 0.1.8.
-
-**Not yet installed or exercised by a human, and no connector has seen a real key.**
+First build containing the Codex allowance connector.
 
 ### Acceptance checklist
 
-1. Chart pop-out renders content; its X closes it.
-2. Hovering the tray icon shows the panel near the icon; it stays open when the pointer
+1. **Dashboard shows a live percentage and countdown for ChatGPT/Codex.** This is the point
+   of the release: the frozen dashboard was never changed, so this working proves the
+   adapter contract holds. Cross-check the figure against `/status` in the Codex TUI.
+2. **Sources shows the ChatGPT/Codex allowance card** with both windows, the plan, and a
+   notice if a rate-limit reset is available while blocked.
+3. Chart pop-out renders content; its X closes it.
+4. Hovering the tray icon shows the panel near the icon; it stays open when the pointer
    moves into it; it is semi-transparent.
-3. `%APPDATA%\com.aiusagemeter.desktop\logs\` stays small. Tens of MB means the save loop
+5. `%APPDATA%\com.aiusagemeter.desktop\logs\` stays small. Tens of MB means the save loop
    has regressed.
-4. Settings > Providers shows the Anthropic requirement block, accepts a Personal key with
-   Organization scope, and reports "Configured".
-5. Sources page shows real token/cost figures after a refresh, or a clear error.
+6. **No console window flashes** during a refresh. If one does, `CREATE_NO_WINDOW` is not
+   taking effect.
+7. Settings > Providers accepts an Anthropic Personal key with Organization scope and
+   reports "Configured"; Sources then shows token/cost figures, or a clear error.
 
-See `docs/HANDOVER-0.1.8.md` for the full continuation brief and the Codex connector test.
+Items 1, 2 and 6 are new in 0.1.10. The API connectors remain unverified against a real key.
