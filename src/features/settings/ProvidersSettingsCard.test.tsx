@@ -18,10 +18,12 @@ test('spells out that the Anthropic key must be Personal with Organization scope
 
   // The scope decides, not the prefix: a "Workspace (legacy)" key is rejected by the API
   // however it is named, so the requirement must name the Console columns to check.
-  expect(screen.getByText(/Must be a Personal key whose Scope is Organization/)).toBeInTheDocument();
-  expect(screen.getByText(/NOT a workspace key/)).toBeInTheDocument();
+  // Both causes must be named. A correctly scoped Personal key still returns
+  // "Missing permissions" when its owner only holds the developer role.
   expect(screen.getByText(/Workspace \(legacy\)/)).toBeInTheDocument();
-  expect(screen.getByText(/prefix does not matter/)).toBeInTheDocument();
+  expect(screen.getByText(/Type is Personal and Scope is Organization/)).toBeInTheDocument();
+  expect(screen.getByText(/must hold the admin role/)).toBeInTheDocument();
+  expect(screen.getByText(/Missing permissions/)).toBeInTheDocument();
 });
 
 test('the OpenAI card carries no personal-key requirement, only Anthropic', () => {

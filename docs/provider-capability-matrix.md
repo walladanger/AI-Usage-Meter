@@ -138,7 +138,7 @@ from a real account.**
 | Connector | Implemented | Verified against a real account |
 |---|---|---|
 | OpenAI usage + cost | Yes (0.1.7) | **NOT YET — needs a real admin key** |
-| Anthropic usage + cost | Yes (0.1.7); cent conversion fixed in 0.1.8 | **NOT YET — needs a real admin key + org account** |
+| Anthropic usage + cost | Yes (0.1.7); cent conversion fixed in 0.1.8 | **TESTED, BLOCKED BY ACCOUNT ROLE** — see below |
 | **Codex allowance (ChatGPT/Codex)** | **Yes (0.1.10)** | **YES — verified end to end on codex-cli 0.148.0-alpha.9** |
 | Gemini | No | n/a |
 | Manual entry | Yes | Yes |
@@ -373,3 +373,45 @@ alpha-versioned surface and it will drift.
   version whose surface differs.
 * Per security constraint 3, allowance values and reset timestamps must **not** be written
   to the diagnostic log. Log the outcome state only, as the API connectors already do.
+
+
+---
+
+# Addendum 3 — 2026-09-06, Anthropic connector tested and blocked
+
+Tested against a real account. **The connector reached Anthropic and was refused: HTTP 403,
+`"Missing permissions."`** Not a 401, so the key itself was accepted.
+
+## Cause: organization role, not key type
+
+The key used was correct — Type **Personal**, Scope **Organization**, not workspace-scoped.
+The block is the account's role. Anthropic defines five organization roles:
+
+| Role | Permissions |
+|---|---|
+| user | Playground only |
+| claude_code_user | Playground + Claude Code |
+| **developer** | Playground + **manage API keys** |
+| billing | Playground + billing details |
+| **admin** | All of the above, plus manage users |
+
+Reading organization usage requires **admin** (or owner/primary owner). The Console states
+"A key acts as the user or service account it was created for", so a Personal key inherits
+its owner's role. A **developer** can therefore *create* a correctly scoped key that is still
+refused at the usage endpoint — which is exactly what happened.
+
+**Confirmed on this account: the admin role is not held**, so the Anthropic connector cannot
+work here without an owner granting it. This is an account-permissions limit, not a defect.
+
+## What this changes
+
+* The 403 message named only the workspace-scope cause and misdirected the user. It now names
+  both causes and points at `platform.claude.com/settings/admin-keys` as the check: being able
+  to create a key there means the admin role is held.
+* The Providers card requirement text likewise now states both conditions.
+
+## Standing rule this reinforces
+
+Three separate things must all be true before the Anthropic connector can return data:
+the account is an organization, the key is not workspace-scoped, **and** the key's owner holds
+the admin role. Any future guidance that names fewer than all three is incomplete.

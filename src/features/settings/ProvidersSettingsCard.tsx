@@ -41,7 +41,7 @@ const PROVIDERS: readonly ProviderDefinition[] = [
     label: 'Anthropic',
     connector: 'available',
     keyLabel: 'Personal key with Organization scope',
-    requirement: 'Must be a Personal key whose Scope is Organization — NOT a workspace key. In Claude Console › Settings › API keys, check the Type and Scope columns: a key marked "Workspace (legacy)" will be rejected by the API, whatever its name. An Admin key (sk-ant-admin01-) also works. The prefix does not matter; the scope does.',
+    requirement: 'Two things must both be true. (1) The key must NOT be workspace-scoped: in Claude Console › Settings › API keys, a key marked "Workspace (legacy)" is rejected whatever its name — use one whose Type is Personal and Scope is Organization. (2) Your account must hold the admin role. A developer can create keys but cannot read organization usage, which returns "Missing permissions". If you can create a key at platform.claude.com/settings/admin-keys you have the admin role.',
     guidance: 'The Admin API is unavailable to individual accounts — your account must be an organization. Reads API token usage and cost, never Claude Pro/Max allowance. These reporting endpoints are not billed per call; Anthropic bills for inference tokens only.',
   },
   {

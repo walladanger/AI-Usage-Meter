@@ -104,7 +104,7 @@ impl ProviderFetchError {
             ),
             403 => Self::new(
                 "authentication_required",
-                "The key is valid but not permitted to read organization usage. For Anthropic this usually means a workspace-scoped key: use a Personal key whose Scope is Organization, or an Admin key.",
+                "The key is valid but not permitted to read organization usage. Two causes: the key is workspace-scoped (use a Personal key whose Scope is Organization), or your account lacks the admin role - a developer can create keys but cannot read organization usage. Check whether you can create a key at platform.claude.com/settings/admin-keys.",
             ),
             404 => Self::new(
                 "page_unavailable",
@@ -598,11 +598,13 @@ mod tests {
         let unauthorized = ProviderFetchError::from_status(401);
         assert!(unauthorized.message.contains("did not accept this key"));
 
-        // 403: a valid key without the right scope. Telling the user to replace the key
-        // would be the wrong fix; they need to change its scope.
+        // 403: a valid key that is not permitted. Observed in the field with a correctly
+        // scoped Personal key whose owner only held the developer role, so the message must
+        // name both causes - an earlier version blamed scope alone and misdirected the user.
         let forbidden = ProviderFetchError::from_status(403);
         assert!(forbidden.message.contains("workspace-scoped"));
-        assert!(forbidden.message.contains("Organization"));
+        assert!(forbidden.message.contains("admin role"));
+        assert!(forbidden.message.contains("admin-keys"));
     }
 
     #[test]
