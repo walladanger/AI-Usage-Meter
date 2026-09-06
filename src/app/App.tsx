@@ -23,7 +23,10 @@ import { useSettings } from '../settings/settingsStore';
 import { isTauriRuntime } from '../runtime/tauriRuntime';
 import type { ShellRoute } from '../navigation/navigationTypes';
 import { recordAppDiagnostic } from '../diagnostics/appDiagnostics';
-import { API_CONNECTOR_PROVIDERS, createApiAdapters } from '../usage/apiProviderAdapter';
+import { API_CONNECTOR_PROVIDERS, ApiUsageAdapter, createApiAdapters } from '../usage/apiProviderAdapter';
+import { CodexUsageAdapter, CodexWithApiSpendAdapter } from '../usage/codexAdapter';
+import { invoke } from '@tauri-apps/api/core';
+import type { PersonalUsageAdapter } from '../usage/providerAdapter';
 import { createRuntimeProviderCredentialsService } from '../settings/providerCredentialsService';
 import type { ProviderId } from '../usage/usageTypes';
 
@@ -71,9 +74,35 @@ function AppContent() {
           // A provider whose status cannot be read stays on its existing source.
         }
       }
-      if (!active || configured.length === 0) return;
-      setAdapters(createApiAdapters(configured));
-      void recordAppDiagnostic('info', `Provider connectors installed; count=${configured.length}.`);
+      // The Codex CLI reports ChatGPT/Codex *allowance*, which no API exposes. When both it
+      // and an OpenAI key are present they answer different questions about the same
+      // provider, so they are merged rather than one silently replacing the other.
+      let codexAvailable = false;
+      try {
+        codexAvailable = await invoke<boolean>('codex_cli_available');
+      } catch {
+        // Treated as absent; OpenAI then falls back to the API connector or manual entry.
+      }
+      if (!active) return;
+
+      const adapters: PersonalUsageAdapter[] = createApiAdapters(
+        configured.filter((providerId) => !(codexAvailable && providerId === 'openai')),
+      );
+      if (codexAvailable) {
+        const codex = new CodexUsageAdapter();
+        adapters.push(
+          configured.includes('openai')
+            ? new CodexWithApiSpendAdapter(codex, new ApiUsageAdapter('openai'))
+            : codex,
+        );
+      }
+      if (adapters.length === 0) return;
+
+      setAdapters(adapters);
+      void recordAppDiagnostic(
+        'info',
+        `Provider connectors installed; api=${configured.length}; codex=${codexAvailable}.`,
+      );
       void refreshAll();
     })();
     return () => { active = false; };

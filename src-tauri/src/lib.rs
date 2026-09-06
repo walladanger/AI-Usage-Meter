@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
+mod codex;
 mod credentials;
 mod diagnostics;
 mod loopback;
@@ -265,6 +266,39 @@ fn close_external_feature_window(app: AppHandle, label: String) -> CommandResult
     window
         .close()
         .map_err(|error| NativeCommandError::native(error.to_string()))
+}
+
+/// Reads ChatGPT/Codex subscription allowance from the local Codex CLI app-server.
+/// Unlike the API connectors this reports allowance, not spend.
+#[tauri::command]
+async fn fetch_codex_usage(app: AppHandle) -> Result<codex::CodexUsageSnapshot, codex::CodexError> {
+    diagnostics::record_native(&app, "INFO", "Codex allowance refresh started.");
+    let result = tauri::async_runtime::spawn_blocking(codex::fetch)
+        .await
+        .unwrap_or_else(|_| {
+            Err(codex::CodexError {
+                state: "error",
+                message: "The Codex refresh did not complete.".to_string(),
+            })
+        });
+    // Outcome state only. Constraint 3 forbids logging allowance values or reset times.
+    diagnostics::record_native(
+        &app,
+        if result.is_ok() { "INFO" } else { "WARN" },
+        &match &result {
+            Ok(_) => "Codex allowance refresh completed.".to_string(),
+            Err(error) => format!("Codex allowance refresh failed; state={}", error.state),
+        },
+    );
+    result
+}
+
+/// Whether the Codex CLI is present, so the UI can offer the source without probing it.
+#[tauri::command]
+async fn codex_cli_available() -> bool {
+    tauri::async_runtime::spawn_blocking(|| codex::locate_codex().is_some())
+        .await
+        .unwrap_or(false)
 }
 
 fn parse_provider(provider_id: &str) -> CommandResult<credentials::ProviderId> {
@@ -539,6 +573,8 @@ pub fn run() {
             delete_provider_credential,
             provider_credential_status,
             fetch_provider_usage,
+            fetch_codex_usage,
+            codex_cli_available,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AI Usage Meter");

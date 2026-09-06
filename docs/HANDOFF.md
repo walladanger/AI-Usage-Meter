@@ -1,6 +1,6 @@
 # AI Usage Meter — Project Handover
 
-**Version:** 0.1.9
+**Version:** 0.1.10
 **Date:** 2026-09-05
 **Repo:** https://github.com/walladanger/AI-Usage-Meter
 **Local path:** `C:\Users\Warwick\.codex\.chatgpt-projects\g-p-6a98b8cd6fa0819194212d5d3efb7f5c\AI-Usage-Meter-work`
@@ -10,7 +10,7 @@
 ## Continuation Prompt (copy-paste this to start the next session)
 
 > Continue AI Usage Meter and read `docs/HANDOFF.md` and `docs/provider-capability-matrix.md`
-> completely before doing anything else. Current version is 0.1.9.
+> completely before doing anything else. Current version is 0.1.10.
 >
 > 0.1.7 fixed the runaway settings-save loop that made 0.1.6 unusable, and added the first real
 > provider connectors (OpenAI + Anthropic organization usage/cost) with keys in Windows Credential
@@ -38,6 +38,57 @@
    history, provider HTML, allowance values, or reset timestamps.
 4. **Logs remain local** unless the user explicitly copies/uploads them.
 5. **Loopback session token:** fresh per launch; never written to disk.
+
+---
+
+## What 0.1.10 changed
+
+### The Codex allowance connector — the app now answers its headline question
+
+`src-tauri/src/codex.rs` spawns the local Codex CLI app-server, performs the JSON-RPC
+handshake, calls `account/rateLimits/read`, and returns `usedPercent`, `windowDurationMins`
+and `resetsAt` for both quota windows, plus plan, credits and available rate-limit resets.
+
+**This is the only source in the project that reports allowance rather than spend**, and the
+only adapter permitted to populate `remainingPercent`, `usedPercent` and `resetAt`. The API
+connectors deliberately leave those undefined because usage endpoints report what was spent.
+
+Verified end to end against a real account on `codex-cli 0.148.0-alpha.9` via an ignored
+integration test (`live_fetch_returns_a_usable_snapshot`), not just unit tests over fixtures.
+
+Three implementation details that were found by testing, not from the docs:
+
+* **stdin must stay open.** Closing it after writing makes the process exit before the
+  asynchronous reply arrives, which is indistinguishable from an unsupported method.
+* **The binary is not reliably on PATH.** It was at `~/.codex/.sandbox-bin/codex.exe` on the
+  verification machine, so `locate_codex()` checks PATH and then known install locations.
+* **`CREATE_NO_WINDOW` is required on Windows**, or a console flashes on every refresh.
+
+Only `usedPercent` is required by the protocol schema; `windowDurationMins` and `resetsAt`
+are nullable and every field is parsed defensively. A missing percentage is omitted rather
+than defaulted to zero, since zero reads as "no allowance left".
+
+### The binding window
+
+Codex reports two windows (5-hour and weekly). The connector reports whichever is closest to
+exhaustion, because that is what actually stops work. This was observed changing in practice:
+the 5-hour window was binding while exhausted, and the weekly window became binding after it
+reset.
+
+### Composition with the OpenAI API connector
+
+Both describe the same provider but answer different questions, and `UsageController` keys
+adapters by provider, so one would silently replace the other. `CodexWithApiSpendAdapter`
+merges them: allowance from Codex, spend from the API. A Codex failure fails the pair; an API
+failure only omits the spend detail, since allowance is the headline figure.
+
+### The frozen Dashboard now works unmodified
+
+`ProviderPanel` already read `remainingPercent`, `resetAt`, and a `'cli'` source type. Because
+Codex fills those fields, the approved dashboard displays real allowance and a live countdown
+**without any change to the frozen files**. Sources gains `CodexAllowanceCard` for what has no
+equivalent elsewhere: both windows, the plan, and any unused rate-limit reset — a user can be
+blocked while holding one.
 
 ---
 
@@ -176,17 +227,17 @@ them; allowance still comes from manual entry. Full detail and citations in
 ```powershell
 npm test
 
-$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.9'
+$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.10'
 cargo test --manifest-path src-tauri/Cargo.toml
 
-$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.10'
+$env:CARGO_TARGET_DIR='C:\Users\Warwick\source\codex-build\ai-usage-meter-0.1.11'
 npm run tauri:build -- --bundles nsis
 ```
 
 `CARGO_TARGET_DIR` must sit outside `.codex`: Windows Application Control blocks test
 executables in hidden folders.
 
-**Test counts (0.1.9):** 45 frontend files / 160 tests; 29 Rust tests.
+**Test counts (0.1.10):** 47 frontend files / 179 tests; 36 Rust tests (+1 ignored live test).
 
 ---
 
@@ -194,7 +245,7 @@ executables in hidden folders.
 
 Four files must match: `package.json`, `package-lock.json` (top-level **and**
 `packages."".version`), `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`.
-Next release: **0.1.10**.
+Next release: **0.1.11**.
 
 ---
 

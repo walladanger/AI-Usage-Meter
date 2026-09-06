@@ -1,6 +1,6 @@
 [package]
 name = "ai-usage-meter"
-version = "0.1.9"
+version = "0.1.10"
 description = "Local-first Windows utility for tracking AI subscription allowances and reset times"
 authors = ["AI Usage Meter"]
 edition = "2021"

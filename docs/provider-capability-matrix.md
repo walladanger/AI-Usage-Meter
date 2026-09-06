@@ -139,6 +139,7 @@ from a real account.**
 |---|---|---|
 | OpenAI usage + cost | Yes (0.1.7) | **NOT YET — needs a real admin key** |
 | Anthropic usage + cost | Yes (0.1.7); cent conversion fixed in 0.1.8 | **NOT YET — needs a real admin key + org account** |
+| **Codex allowance (ChatGPT/Codex)** | **Yes (0.1.10)** | **YES — verified end to end on codex-cli 0.148.0-alpha.9** |
 | Gemini | No | n/a |
 | Manual entry | Yes | Yes |
 

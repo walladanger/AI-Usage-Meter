@@ -52,6 +52,37 @@ export interface ApiUsageMetrics {
   source: string;
 }
 
+/** One quota window as reported by the Codex CLI. */
+export interface CodexWindowView {
+  usedPercent: number;
+  remainingPercent: number;
+  windowMinutes?: number;
+  resetsAt?: string;
+  label?: string;
+}
+
+/**
+ * ChatGPT/Codex subscription allowance from the local Codex CLI app-server.
+ *
+ * This is the only source that reports allowance rather than spend, so unlike an API
+ * observation it legitimately fills `remainingPercent`, `usedPercent` and `resetAt` on the
+ * observation itself. The extras below have no equivalent elsewhere.
+ */
+export interface CodexAllowanceDetail {
+  planType?: string;
+  primary?: CodexWindowView;
+  secondary?: CodexWindowView;
+  /** Decimal string — parse as decimal, never as a float. */
+  creditBalance?: string;
+  hasCredits: boolean;
+  unlimited: boolean;
+  rateLimitReached: boolean;
+  /** Earned resets the account can spend; a user can be blocked while holding one. */
+  resetCreditsAvailable: number;
+  cliVersion?: string;
+  source: string;
+}
+
 export interface UsageObservation {
   providerId: ProviderId;
   accountLabel?: string;
@@ -63,6 +94,7 @@ export interface UsageObservation {
   sourceType: SourceType;
   confidence: Confidence;
   apiUsage?: ApiUsageMetrics;
+  codexAllowance?: CodexAllowanceDetail;
 }
 
 export interface ProviderUsageState {
