@@ -27,7 +27,7 @@ getrandom = "0.2"
 # keyring: Windows Credential Manager. API keys never touch settings.json, SQLite, or logs.
 # reqwest: provider HTTPS calls stay in Rust so response bodies never reach the frontend.
 keyring = { version = "3", features = ["windows-native"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset", "http2"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-tls", "charset", "http2"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
